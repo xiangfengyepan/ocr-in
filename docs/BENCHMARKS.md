@@ -20,6 +20,7 @@ are writer-independent (train/val/test by writer, seed 0). Status: 2026-07-19.
 
 | Engine | Trained on | Words CER / WER | Lines CER / WER |
 |---|---|---|---|
+| **Ollama VLM** (`gemma3:4b`, Q4) | — (general VLM) | 47.3% / 61.9% ⁶ | 33.6% / 54.9% ⁶ |
 | **Tesseract 5.5** (no AI, CPU) | — (printed-text model) | 79.2% / 118% | 51.8% / 89.3% ⁵ |
 | **CRNN** | words | **10.3% / 24.0%** | 43.1% / ~100% ¹ |
 | **CRNN** | lines | — | 10.8% / 31.0% ² |
@@ -41,6 +42,10 @@ are writer-independent (train/val/test by writer, seed 0). Status: 2026-07-19.
   *insertions*; a noisy multi-token output for a short reference produces more edits
   than the reference has words (e.g. ref "some" → hyp "SO oer ge." = 1 substitution +
   2 insertions = 3 edits over 1 ref word = 300%). Averaged over the set this lands at 118%.
+⁶ Ollama `gemma3:4b` (quantized general vision model, not OCR-specialised), n=200 subset
+  (VLM inference is slow and serial). Reads many words but lowercases, adds punctuation,
+  and hallucinates on ambiguous crops — inflating CER/WER. Better than Tesseract, well
+  behind CRNN/TrOCR. A dedicated OCR VLM could do better; model choice revisited in Phase 3.
 
 ### CRNN on words — extra detail
 
