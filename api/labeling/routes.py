@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 from PIL import Image
 from pydantic import BaseModel
 
-from api.inference.crnn_recognizer import get_recognizer
+from api.inference.crnn_recognizer import crop_to_ink, get_recognizer
 from api.labeling.store import SampleStore
 from api.util import settings
 
@@ -57,9 +57,16 @@ def guess(req: GuessRequest) -> GuessResponse:
 
 @router.post("/sample", response_model=SampleResponse)
 def sample(req: SampleRequest) -> SampleResponse:
-    result = store.add_sample(
-        _decode_png(req.image), req.text, req.language, req.rating, req.engine_guess
-    )
+    image = Image.open(io.BytesIO(_decode_png(req.image)))
+    cropped = crop_to_ink(image)
+    buf = io.BytesIO()
+    cropped.save(buf, format="PNG")
+    try:
+        result = store.add_sample(
+            buf.getvalue(), req.text, req.language, req.rating, req.engine_guess
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return SampleResponse(**result)
 
 
