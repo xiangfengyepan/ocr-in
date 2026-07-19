@@ -7,7 +7,7 @@ from training.augmentation.transforms import IMG_HEIGHT, IMG_WIDTH, Preprocess
 from training.eval.metrics import cer, wer
 from training.models import CRNN, greedy_decode
 from training.util.charset import Charset
-from training.util.collate import ctc_collate
+from training.util.collate import ctc_collate, trocr_collate
 
 
 def test_preprocess_shape_and_range():
@@ -51,6 +51,18 @@ def test_collate_shapes():
     assert images.shape == (2, 1, IMG_HEIGHT, IMG_WIDTH)
     assert targets.tolist() == [1, 2, 3, 4, 5]
     assert lengths.tolist() == [3, 2]
+    assert texts == ["abc", "de"]
+
+
+def test_trocr_collate_pads_with_ignore_index():
+    batch = [
+        (torch.zeros(3, 384, 384), torch.tensor([5, 6, 7]), "abc"),
+        (torch.zeros(3, 384, 384), torch.tensor([8, 9]), "de"),
+    ]
+    pixel_values, labels, texts = trocr_collate(batch)
+    assert pixel_values.shape == (2, 3, 384, 384)
+    assert labels.shape == (2, 3)
+    assert labels[1].tolist() == [8, 9, -100]
     assert texts == ["abc", "de"]
 
 

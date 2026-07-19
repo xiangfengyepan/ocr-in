@@ -105,3 +105,23 @@ class IamWordsDataset(Dataset):
         tensor = self.transform(image)
         target = torch.tensor(self.charset.encode(s.text), dtype=torch.long)
         return tensor, target, s.text
+
+
+class IamTrocrDataset(Dataset):
+    def __init__(self, samples: Sequence[IamSample], processor, augment, max_target_length: int = 64) -> None:
+        self.samples = list(samples)
+        self.processor = processor
+        self.augment = augment
+        self.max_target_length = max_target_length
+
+    def __len__(self) -> int:
+        return len(self.samples)
+
+    def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor, str]:
+        s = self.samples[index]
+        image = self.augment(Image.open(s.image_path))
+        pixel_values = self.processor(images=image, return_tensors="pt").pixel_values.squeeze(0)
+        labels = self.processor.tokenizer(
+            s.text, truncation=True, max_length=self.max_target_length
+        ).input_ids
+        return pixel_values, torch.tensor(labels, dtype=torch.long), s.text

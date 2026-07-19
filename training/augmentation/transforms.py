@@ -9,7 +9,7 @@ IMG_HEIGHT = 32
 IMG_WIDTH = 256
 
 
-def _augmentation() -> A.Compose:
+def build_augmentation() -> A.Compose:
     return A.Compose(
         [
             A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
@@ -21,13 +21,7 @@ def _augmentation() -> A.Compose:
                 p=0.3,
             ),
             A.GaussNoise(std_range=(0.02, 0.1), p=0.3),
-            A.OneOf(
-                [
-                    A.ElasticTransform(alpha=20, sigma=5, p=1.0),
-                    A.GridDistortion(num_steps=5, distort_limit=0.2, p=1.0),
-                ],
-                p=0.3,
-            ),
+            A.ElasticTransform(alpha=20, sigma=5, p=0.3),
             A.Morphological(scale=(2, 3), operation="dilation", p=0.2),
             A.Morphological(scale=(2, 3), operation="erosion", p=0.2),
             A.ImageCompression(quality_range=(50, 90), p=0.2),
@@ -42,7 +36,7 @@ class Preprocess:
         self.height = height
         self.width = width
         self.train = train
-        self.aug = _augmentation() if train else None
+        self.aug = build_augmentation() if train else None
 
     def __call__(self, image: Image.Image) -> torch.Tensor:
         arr = np.array(image.convert("L"), dtype=np.uint8)
@@ -62,3 +56,23 @@ class Preprocess:
         canvas = np.full((self.height, self.width), 255, dtype=np.uint8)
         canvas[:, :new_w] = resized
         return canvas
+
+
+class TrocrAugment:
+    def __init__(self, train: bool = False) -> None:
+        self.aug = build_augmentation() if train else None
+
+    def __call__(self, image: Image.Image) -> Image.Image:
+        image = self._min_size(image.convert("L"))
+        arr = np.array(image, dtype=np.uint8)
+        if self.aug is not None:
+            arr = self.aug(image=arr)["image"]
+        return Image.fromarray(arr, mode="L").convert("RGB")
+
+    @staticmethod
+    def _min_size(image: Image.Image, min_height: int = 64) -> Image.Image:
+        w, h = image.size
+        if h >= min_height:
+            return image
+        scale = min_height / max(h, 1)
+        return image.resize((max(min_height, round(w * scale)), min_height), Image.BILINEAR)
