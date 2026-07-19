@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from PIL import Image
 import io
 
@@ -30,3 +31,9 @@ def test_stats_counts_by_rating(tmp_path: Path):
     s = store.stats()
     assert s["total"] == 3
     assert s["by_rating"] == {"correct": 2, "partial": 0, "wrong": 1}
+
+
+def test_add_sample_rejects_unsafe_language(tmp_path: Path):
+    store = SampleStore(tmp_path)
+    with pytest.raises(ValueError):
+        store.add_sample(_png_bytes(), "x", "../evil", "correct", "x")

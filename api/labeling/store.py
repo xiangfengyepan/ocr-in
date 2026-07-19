@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -40,6 +41,8 @@ class SampleStore:
     ) -> dict:
         if rating not in _RATINGS:
             raise ValueError(f"invalid rating: {rating!r}")
+        if not re.fullmatch(r"[A-Za-z_]+", language):
+            raise ValueError(f"invalid language: {language!r}")
         created = datetime.now(timezone.utc).isoformat()
         with self._conn() as conn:
             cur = conn.execute(
