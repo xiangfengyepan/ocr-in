@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from training.augmentation.transforms import IMG_HEIGHT, IMG_WIDTH, Preprocess
-from training.datasets.iam import IamWordsDataset, parse_words, writer_split
+from training.datasets.iam import IamWordsDataset, parse_lines, parse_words, writer_split
 from training.models import CRNN
 from training.train_crnn import evaluate
 from training.util.charset import Charset
@@ -21,6 +21,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--data-root", type=Path, default=REPO_ROOT / "datasets")
     p.add_argument("--ckpt", type=Path, default=REPO_ROOT / "models" / "crnn" / "english")
     p.add_argument("--split", choices=["train", "val", "test"], default="test")
+    p.add_argument("--level", choices=["words", "lines"], default="words")
+    p.add_argument("--width", type=int, default=IMG_WIDTH)
     p.add_argument("--batch-size", type=int, default=128)
     p.add_argument("--num-workers", type=int, default=12)
     p.add_argument("--val-frac", type=float, default=0.1)
@@ -33,12 +35,15 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     charset = Charset.load(args.ckpt / "charset.json")
-    samples = parse_words(args.data_root / "ascii" / "words.txt", args.data_root / "words")
+    if args.level == "lines":
+        samples = parse_lines(args.data_root / "ascii" / "lines.txt", args.data_root / "lines")
+    else:
+        samples = parse_words(args.data_root / "ascii" / "words.txt", args.data_root / "words")
     splits = writer_split(
         samples, args.data_root / "ascii" / "forms.txt", args.val_frac, args.test_frac, args.seed
     )
     dataset = IamWordsDataset(
-        splits[args.split], charset, Preprocess(IMG_HEIGHT, IMG_WIDTH, train=False)
+        splits[args.split], charset, Preprocess(IMG_HEIGHT, args.width, train=False)
     )
     loader = DataLoader(
         dataset,

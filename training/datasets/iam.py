@@ -50,6 +50,27 @@ def parse_words(words_txt: Path, words_dir: Path, include_err: bool = False) -> 
     return samples
 
 
+def parse_lines(lines_txt: Path, lines_dir: Path, include_err: bool = False) -> list[IamSample]:
+    samples: list[IamSample] = []
+    for line in Path(lines_txt).read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line or line.startswith("#"):
+            continue
+        fields = line.split()
+        if len(fields) < 9:
+            continue
+        line_id, result = fields[0], fields[1]
+        if result != "ok" and not include_err:
+            continue
+        text = fields[-1].replace("|", " ").strip()
+        if not text:
+            continue
+        path = word_image_path(line_id, lines_dir)
+        if not path.exists() or path.stat().st_size == 0:
+            continue
+        samples.append(IamSample(line_id, path, text))
+    return samples
+
+
 def _writer_of(word_id: str, form_to_writer: dict[str, str]) -> str:
     return form_to_writer.get(form_id_of(word_id), form_id_of(word_id))
 

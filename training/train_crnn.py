@@ -9,7 +9,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from training.augmentation.transforms import IMG_HEIGHT, IMG_WIDTH, Preprocess
-from training.datasets.iam import IamWordsDataset, parse_words, writer_split
+from training.datasets.iam import IamWordsDataset, parse_lines, parse_words, writer_split
 from training.eval.metrics import cer, wer
 from training.models import CRNN, greedy_decode
 from training.util.charset import Charset
@@ -19,8 +19,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def build_loaders(args) -> tuple[DataLoader, DataLoader, Charset]:
-    words_dir = args.data_root / "words"
-    samples = parse_words(args.data_root / "ascii" / "words.txt", words_dir)
+    if args.level == "lines":
+        samples = parse_lines(args.data_root / "ascii" / "lines.txt", args.data_root / "lines")
+    else:
+        samples = parse_words(args.data_root / "ascii" / "words.txt", args.data_root / "words")
     if args.limit:
         samples = samples[: args.limit]
     splits = writer_split(
@@ -28,9 +30,11 @@ def build_loaders(args) -> tuple[DataLoader, DataLoader, Charset]:
     )
     charset = Charset.from_texts(s.text for s in splits["train"])
     train_ds = IamWordsDataset(
-        splits["train"], charset, Preprocess(IMG_HEIGHT, IMG_WIDTH, train=True)
+        splits["train"], charset, Preprocess(args.height, args.width, train=True)
     )
-    val_ds = IamWordsDataset(splits["val"], charset, Preprocess(IMG_HEIGHT, IMG_WIDTH, train=False))
+    val_ds = IamWordsDataset(
+        splits["val"], charset, Preprocess(args.height, args.width, train=False)
+    )
     train_loader = DataLoader(
         train_ds,
         batch_size=args.batch_size,
@@ -128,6 +132,9 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Train CRNN on IAM words")
     p.add_argument("--data-root", type=Path, default=REPO_ROOT / "datasets")
     p.add_argument("--out", type=Path, default=REPO_ROOT / "models" / "crnn" / "english")
+    p.add_argument("--level", choices=["words", "lines"], default="words")
+    p.add_argument("--height", type=int, default=IMG_HEIGHT)
+    p.add_argument("--width", type=int, default=IMG_WIDTH)
     p.add_argument("--epochs", type=int, default=30)
     p.add_argument("--batch-size", type=int, default=32)
     p.add_argument("--grad-accum", type=int, default=1)

@@ -10,23 +10,29 @@ from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 from transformers.optimization import Adafactor, get_linear_schedule_with_warmup
 
 from training.augmentation.transforms import TrocrAugment
-from training.datasets.iam import IamTrocrDataset, parse_words, writer_split
+from training.datasets.iam import IamTrocrDataset, parse_lines, parse_words, writer_split
 from training.eval.metrics import cer, wer
 from training.util.collate import trocr_collate
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+def load_samples(data_root: Path, level: str):
+    if level == "lines":
+        return parse_lines(data_root / "ascii" / "lines.txt", data_root / "lines")
+    return parse_words(data_root / "ascii" / "words.txt", data_root / "words")
+
+
 def build_loaders(args, processor) -> tuple[DataLoader, DataLoader]:
-    words_dir = args.data_root / "words"
-    samples = parse_words(args.data_root / "ascii" / "words.txt", words_dir)
+    samples = load_samples(args.data_root, args.level)
     if args.limit:
         samples = samples[: args.limit]
     splits = writer_split(
         samples, args.data_root / "ascii" / "forms.txt", args.val_frac, args.test_frac, args.seed
     )
-    train_ds = IamTrocrDataset(splits["train"], processor, TrocrAugment(train=True))
-    val_ds = IamTrocrDataset(splits["val"], processor, TrocrAugment(train=False))
+    max_len = 128 if args.level == "lines" else 64
+    train_ds = IamTrocrDataset(splits["train"], processor, TrocrAugment(train=True), max_len)
+    val_ds = IamTrocrDataset(splits["val"], processor, TrocrAugment(train=False), max_len)
     train_loader = DataLoader(
         train_ds,
         batch_size=args.batch_size,
@@ -138,6 +144,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--data-root", type=Path, default=REPO_ROOT / "datasets")
     p.add_argument("--out", type=Path, default=REPO_ROOT / "models" / "trocr" / "english")
     p.add_argument("--model", type=str, default="microsoft/trocr-small-handwritten")
+    p.add_argument("--level", choices=["words", "lines"], default="words")
     p.add_argument("--epochs", type=int, default=8)
     p.add_argument("--batch-size", type=int, default=8)
     p.add_argument("--grad-accum", type=int, default=4)

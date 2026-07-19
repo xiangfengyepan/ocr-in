@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
 from training.augmentation.transforms import TrocrAugment
-from training.datasets.iam import IamTrocrDataset, parse_words, writer_split
+from training.datasets.iam import IamTrocrDataset, parse_lines, parse_words, writer_split
 from training.eval.metrics import cer, wer
 from training.util.collate import trocr_collate
 
@@ -20,6 +20,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--data-root", type=Path, default=REPO_ROOT / "datasets")
     p.add_argument("--ckpt", type=Path, default=REPO_ROOT / "models" / "trocr" / "english")
     p.add_argument("--split", choices=["train", "val", "test"], default="test")
+    p.add_argument("--level", choices=["words", "lines"], default="words")
     p.add_argument("--limit", type=int, default=0)
     p.add_argument("--batch-size", type=int, default=16)
     p.add_argument("--num-workers", type=int, default=8)
@@ -37,7 +38,10 @@ def main() -> None:
     args = parse_args()
     processor = TrOCRProcessor.from_pretrained(args.ckpt)
     model = VisionEncoderDecoderModel.from_pretrained(args.ckpt).to(args.device).eval()
-    samples = parse_words(args.data_root / "ascii" / "words.txt", args.data_root / "words")
+    if args.level == "lines":
+        samples = parse_lines(args.data_root / "ascii" / "lines.txt", args.data_root / "lines")
+    else:
+        samples = parse_words(args.data_root / "ascii" / "words.txt", args.data_root / "words")
     split = writer_split(
         samples, args.data_root / "ascii" / "forms.txt", args.val_frac, args.test_frac, args.seed
     )[args.split]

@@ -7,6 +7,7 @@ from PIL import Image
 from training.datasets.iam import (
     form_id_of,
     parse_form_writers,
+    parse_lines,
     parse_words,
     word_image_path,
     writer_split,
@@ -66,6 +67,28 @@ def test_parse_words_include_err(tmp_path: Path):
     samples = parse_words(words_txt, words_dir, include_err=True)
     err = next(s for s in samples if s.word_id == "a01-000u-00-02")
     assert err.text == "M Ps"
+
+
+def test_parse_lines(tmp_path: Path):
+    lines_dir = tmp_path / "lines"
+    _make_image(word_image_path("a01-000u-00", lines_dir))
+    _make_image(word_image_path("a01-000u-01", lines_dir))
+    lines_txt = tmp_path / "lines.txt"
+    lines_txt.write_text(
+        "\n".join(
+            [
+                "#comment",
+                "a01-000u-00 ok 154 19 408 746 1661 89 A|MOVE|to|stop|Mr.",
+                "a01-000u-01 err 156 19 395 932 1850 105 bad|seg",
+                "a01-000u-02 ok 154 1 2 3 4 5 missing|image",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    samples = parse_lines(lines_txt, lines_dir)
+    assert len(samples) == 1
+    assert samples[0].word_id == "a01-000u-00"
+    assert samples[0].text == "A MOVE to stop Mr."
 
 
 def test_writer_split_no_leakage(tmp_path: Path):

@@ -22,7 +22,7 @@ are writer-independent (train/val/test by writer, seed 0). Status: 2026-07-19.
 |---|---|---|---|
 | **Tesseract 5.5** (no AI, CPU) | — (printed-text model) | 79.2% / 118% | 51.8% / 89.3% ⁵ |
 | **CRNN** | words | **10.3% / 24.0%** | 43.1% / ~100% ¹ |
-| **CRNN** | lines | — | **~10.3% / ~31% (val, in progress)** ² |
+| **CRNN** | lines | — | 10.8% / 31.0% ² |
 | **TrOCR-base (stock)** | — (pretrained on IAM lines) | 38% / 74% (val) | **2.8% / 7.1%** |
 | **TrOCR-base (fine-tuned)** | words | 21% / 26% (val) ³ | — |
 | **TrOCR-base (fine-tuned)** | lines | — | 52% / 66% (val) ⁴ |
@@ -30,8 +30,10 @@ are writer-independent (train/val/test by writer, seed 0). Status: 2026-07-19.
 ¹ Word-trained CRNN applied to lines (width 1024, aspect-preserved). At the trained
   width 256 it is 70.7% / ~100%. WER ~100% because a word-trained model never learned
   line-scale word spacing, so words run together.
-² Line-CRNN training in progress (epoch 16/80, val CER 0.120 / WER 0.354, still improving).
-  Numbers are validation; final test numbers pending.
+² Line-CRNN trained from scratch on lines (width 1024, 80 epochs, best epoch 71).
+  Val CER 8.9% / WER 27.2%; test CER 10.8% / WER 31.0%. It learned line-scale word
+  spacing (unlike the word-CRNN), but at ~4× TrOCR-lines' CER it lost the comparison,
+  so the checkpoint was reverted (deleted); TrOCR-base is the line engine.
 ³ Val, greedy CER 0.25 / `no_repeat_ngram=3` CER 0.21. Best epoch 6.
 ⁴ Best epoch 2; degraded to 71% by epoch 8 (checkpoint deleted). See key findings.
 ⁵ Tesseract uses a printed-text model, so on handwriting it is the weakest engine.
