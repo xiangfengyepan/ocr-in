@@ -1,17 +1,36 @@
 import { AfterViewInit, Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
+import { finalize } from 'rxjs';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LabelService } from '../core/label.service';
+import { ToastService } from '../shared/toast.service';
 
 type Rating = 'correct' | 'incorrect';
 
 @Component({
   selector: 'app-labeling',
-  imports: [DecimalPipe],
+  imports: [
+    DecimalPipe,
+    MatCardModule,
+    MatButtonModule,
+    MatButtonToggleModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatInputModule,
+    MatProgressSpinnerModule,
+  ],
   templateUrl: './labeling.html',
   styleUrl: './labeling.scss',
 })
 export class Labeling implements AfterViewInit {
   private svc = inject(LabelService);
+  private toast = inject(ToastService);
   private canvasRef = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
   private ctx: CanvasRenderingContext2D | null = null;
   private drawing = false;
@@ -23,6 +42,8 @@ export class Labeling implements AfterViewInit {
   rating = signal<Rating | null>(null);
   text = signal('');
   total = signal(0);
+  guessing = signal(false);
+  saving = signal(false);
 
   ngAfterViewInit(): void {
     const ctx = this.canvasRef().nativeElement.getContext('2d');
@@ -65,12 +86,20 @@ export class Labeling implements AfterViewInit {
   private png(): string { return this.canvasRef().nativeElement.toDataURL('image/png'); }
 
   doGuess(): void {
-    this.svc.guess(this.png(), this.language()).subscribe((r) => {
-      this.guess.set(r.guess);
-      this.confidence.set(r.confidence);
-      this.text.set(r.guess);
-      this.rating.set(null);
-    });
+    this.guessing.set(true);
+    this.svc
+      .guess(this.png(), this.language())
+      .pipe(finalize(() => this.guessing.set(false)))
+      .subscribe({
+        next: (r) => {
+          this.guess.set(r.guess);
+          this.confidence.set(r.confidence);
+          this.text.set(r.guess);
+          this.rating.set(null);
+        },
+        error: () =>
+          this.toast.error('Guess failed — check the API is running and a CRNN model is available.'),
+      });
   }
 
   rate(r: Rating): void {
@@ -80,6 +109,7 @@ export class Labeling implements AfterViewInit {
 
   save(): void {
     if (!this.rating()) return;
+    this.saving.set(true);
     this.svc
       .sample({
         image: this.png(),
@@ -88,7 +118,15 @@ export class Labeling implements AfterViewInit {
         text: this.text(),
         engine_guess: this.guess(),
       })
-      .subscribe(() => { this.clear(); this.refreshStats(); });
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: () => {
+          this.toast.success('Sample saved');
+          this.clear();
+          this.refreshStats();
+        },
+        error: () => this.toast.error('Could not save the sample.'),
+      });
   }
 
   refreshStats(): void { this.svc.stats().subscribe((s) => this.total.set(s.total)); }

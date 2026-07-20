@@ -1,37 +1,63 @@
-<section class="labeling">
-  <div class="controls">
-    <label>Language
-      <select [value]="language()" (change)="language.set($any($event.target).value)">
-        @for (l of languages; track l) { <option [value]="l">{{ l }}</option> }
-      </select>
-    </label>
-    <span class="count">Saved: {{ total() }}</span>
-  </div>
+<mat-card class="labeling">
+  <mat-card-header>
+    <mat-card-title>Label a word</mat-card-title>
+    <mat-card-subtitle>Draw a single word, get a guess, and rate it.</mat-card-subtitle>
+  </mat-card-header>
 
-  <canvas #canvas width="800" height="200"
-    (pointerdown)="onPointerDown($event)"
-    (pointermove)="onPointerMove($event)"
-    (pointerup)="onPointerUp()"
-    (pointerleave)="onPointerUp()"></canvas>
-
-  <div class="actions">
-    <button (click)="clear()">Clear</button>
-    <button (click)="doGuess()">Guess</button>
-  </div>
-
-  @if (guess() !== null) {
-    <div class="result">
-      <p>Guess: <strong>{{ guess() }}</strong> <em>({{ confidence() | number:'1.2-2' }})</em></p>
-      <div class="ratings">
-        <button [class.sel]="rating()==='correct'" (click)="rate('correct')">Correct</button>
-        <button [class.sel]="rating()==='incorrect'" (click)="rate('incorrect')">Incorrect</button>
-      </div>
-      @if (rating() === 'incorrect') {
-        <label>Correct text
-          <input [value]="text()" (input)="text.set($any($event.target).value)" />
-        </label>
-      }
-      <button class="save" [disabled]="!rating()" (click)="save()">Save</button>
+  <mat-card-content>
+    <div class="controls">
+      <mat-form-field appearance="outline" class="lang">
+        <mat-label>Language</mat-label>
+        <mat-select [value]="language()" (selectionChange)="language.set($event.value)">
+          @for (l of languages; track l) {
+            <mat-option [value]="l">{{ l }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <span class="count">Saved: {{ total() }}</span>
     </div>
-  }
-</section>
+
+    <canvas #canvas width="800" height="200"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp()"
+      (pointerleave)="onPointerUp()"></canvas>
+
+    <div class="actions">
+      <button mat-stroked-button (click)="clear()">Clear</button>
+      <button mat-flat-button color="primary" (click)="doGuess()" [disabled]="guessing()">
+        @if (guessing()) {
+          <mat-progress-spinner diameter="18" mode="indeterminate" />
+        } @else {
+          Guess
+        }
+      </button>
+    </div>
+
+    @if (guess() !== null) {
+      <div class="result">
+        <p>Guess: <strong>{{ guess() }}</strong> <em>({{ confidence() | number: '1.2-2' }})</em></p>
+        <mat-button-toggle-group [value]="rating()" (change)="rate($event.value)" hideSingleSelectionIndicator>
+          <mat-button-toggle value="correct">Correct</mat-button-toggle>
+          <mat-button-toggle value="incorrect">Incorrect</mat-button-toggle>
+        </mat-button-toggle-group>
+
+        @if (rating() === 'incorrect') {
+          <mat-form-field appearance="outline" class="correction">
+            <mat-label>Correct text</mat-label>
+            <input matInput [value]="text()" (input)="text.set($any($event.target).value)" />
+          </mat-form-field>
+        }
+
+        <button mat-flat-button color="primary" class="save"
+          [disabled]="!rating() || saving()" (click)="save()">
+          @if (saving()) {
+            <mat-progress-spinner diameter="18" mode="indeterminate" />
+          } @else {
+            Save
+          }
+        </button>
+      </div>
+    }
+  </mat-card-content>
+</mat-card>
