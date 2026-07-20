@@ -1,8 +1,11 @@
-<nav class="tabs">
-  <a routerLink="/labeling" routerLinkActive="active">Labeling</a>
-  <a routerLink="/data" routerLinkActive="active">Data</a>
-  <a routerLink="/ocr" routerLinkActive="active">OCR</a>
-</nav>
-<main>
+<mat-toolbar class="topbar">
+  <span class="title">Handwriting OCR</span>
+  <nav class="tabs">
+    <a mat-button routerLink="/labeling" routerLinkActive="active">Labeling</a>
+    <a mat-button routerLink="/data" routerLinkActive="active">Data</a>
+    <a mat-button routerLink="/ocr" routerLinkActive="active">OCR</a>
+  </nav>
+</mat-toolbar>
+<main class="page">
   <router-outlet />
 </main>
