@@ -30,3 +30,23 @@
 .chart .line { fill: none; stroke-width: 2; }
 .chart .line.cer { stroke: #c62828; }
 .chart .line.wer { stroke: #1565c0; }
+
+.legend, .chart { margin-top: 0.75rem; }
+.pad { padding-top: 1rem; }
+
+.labeling { padding-top: 0.75rem; }
+.labeling .total { font-weight: 600; margin: 0 0 0.6rem; }
+.labeling .bar {
+  display: flex;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--mat-sys-surface-container-highest);
+}
+.labeling .seg.correct { background: #2e7d32; }
+.labeling .seg.incorrect { background: #c62828; }
+.labeling .counts { list-style: none; padding: 0; margin: 0.6rem 0; }
+.labeling .counts li { display: flex; align-items: center; gap: 0.5rem; padding: 0.15rem 0; }
+.labeling .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.labeling .dot.correct { background: #2e7d32; }
+.labeling .dot.incorrect { background: #c62828; }

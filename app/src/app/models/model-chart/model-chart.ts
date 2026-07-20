@@ -1,17 +1,28 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { ModelInfo } from '../../core/label.service';
+import { MatTabsModule } from '@angular/material/tabs';
+import { LabelService, ModelInfo, StatsResponse } from '../../core/label.service';
 
 @Component({
   selector: 'app-model-chart',
-  imports: [MatDialogModule, MatButtonModule],
+  imports: [MatDialogModule, MatButtonModule, MatTabsModule],
   templateUrl: './model-chart.html',
   styleUrl: './model-chart.scss',
 })
 export class ModelChart {
   data = inject<ModelInfo>(MAT_DIALOG_DATA);
   private ref = inject<MatDialogRef<ModelChart>>(MatDialogRef);
+  private svc = inject(LabelService);
+  stats = signal<StatsResponse | null>(null);
+
+  constructor() {
+    this.svc.stats().subscribe((s) => this.stats.set(s));
+  }
+
+  ratingPct(s: StatsResponse, key: string): number {
+    return s.total ? ((s.by_rating[key] || 0) / s.total) * 100 : 0;
+  }
 
   readonly W = 460;
   readonly H = 240;
