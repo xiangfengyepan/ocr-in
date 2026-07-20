@@ -31,9 +31,9 @@
             <input matInput [value]="s.text" (input)="setText(s, $any($event.target).value)" />
           </mat-form-field>
         </div>
-        <mat-button-toggle-group [value]="s.rating" (change)="setRating(s, $event.value)" hideSingleSelectionIndicator>
-          <mat-button-toggle value="correct">Correct</mat-button-toggle>
-          <mat-button-toggle value="incorrect">Incorrect</mat-button-toggle>
+        <mat-button-toggle-group class="rating-toggle" [value]="s.rating" (change)="setRating(s, $event.value)" hideSingleSelectionIndicator>
+          <mat-button-toggle class="toggle-correct" value="correct">Correct</mat-button-toggle>
+          <mat-button-toggle class="toggle-incorrect" value="incorrect">Incorrect</mat-button-toggle>
         </mat-button-toggle-group>
         <button mat-stroked-button color="warn" class="delete" (click)="remove(s)">Delete</button>
       </mat-card>

@@ -54,3 +54,14 @@ body {
   margin: 0 auto;
   padding: 1.5rem 1rem;
 }
+
+.rating-toggle .toggle-correct.mat-button-toggle-checked {
+  background-color: #2e7d32;
+}
+.rating-toggle .toggle-incorrect.mat-button-toggle-checked {
+  background-color: #c62828;
+}
+.rating-toggle .toggle-correct.mat-button-toggle-checked .mat-button-toggle-label-content,
+.rating-toggle .toggle-incorrect.mat-button-toggle-checked .mat-button-toggle-label-content {
+  color: #fff;
+}

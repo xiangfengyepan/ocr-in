@@ -37,9 +37,9 @@
     @if (guess() !== null) {
       <div class="result">
         <p>Guess: <strong>{{ guess() }}</strong> <em>({{ confidence() | number: '1.2-2' }})</em></p>
-        <mat-button-toggle-group [value]="rating()" (change)="rate($event.value)" hideSingleSelectionIndicator>
-          <mat-button-toggle value="correct">Correct</mat-button-toggle>
-          <mat-button-toggle value="incorrect">Incorrect</mat-button-toggle>
+        <mat-button-toggle-group class="rating-toggle" [value]="rating()" (change)="rate($event.value)" hideSingleSelectionIndicator>
+          <mat-button-toggle class="toggle-correct" value="correct">Correct</mat-button-toggle>
+          <mat-button-toggle class="toggle-incorrect" value="incorrect">Incorrect</mat-button-toggle>
         </mat-button-toggle-group>
 
         @if (rating() === 'incorrect') {

@@ -47,5 +47,5 @@
   flex: 1;
   min-width: 0;
 }
-.card mat-button-toggle-group { width: 100%; }
+.card mat-button-toggle-group { align-self: flex-start; }
 .card .delete { align-self: flex-start; }
