@@ -144,3 +144,25 @@ def test_delete_sample(tmp_path):
     assert client.delete(f"/label/sample/{sid}").status_code == 200
     assert client.get("/label/samples").json() == []
     assert client.delete(f"/label/sample/{sid}").status_code == 404
+
+
+def test_export_import_roundtrip(tmp_path):
+    from api.labeling import routes
+
+    client = _client(tmp_path)
+    _add(client, "one")
+    _add(client, "two", rating="incorrect")
+    exported = client.get("/label/export")
+    assert exported.status_code == 200
+    assert exported.headers["content-type"] == "application/zip"
+
+    routes.store = routes.SampleStore(tmp_path / "imported")  # fresh, empty store
+    assert client.get("/label/samples").json() == []
+    resp = client.post(
+        "/label/import", files={"file": ("labels.zip", exported.content, "application/zip")}
+    )
+    assert resp.status_code == 200
+    assert resp.json()["imported"] == 2
+    rows = client.get("/label/samples").json()
+    assert {r["text"] for r in rows} == {"one", "two"}
+    assert (tmp_path / "imported" / "english" / "1.png").exists()

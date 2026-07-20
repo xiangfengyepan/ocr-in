@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import base64
 import io
+import json
+import zipfile
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse, StreamingResponse
 from PIL import Image
 from pydantic import BaseModel
 
@@ -156,3 +158,59 @@ def delete(sample_id: int) -> dict:
 @router.get("/stats")
 def stats() -> dict:
     return store.stats()
+
+
+@router.get("/export")
+def export() -> StreamingResponse:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        manifest: list[str] = []
+        for s in store.list_samples(limit=10**9):
+            image = store.root / s["image_path"]
+            if not image.is_file():
+                continue
+            arc = f"images/{s['image_path']}"
+            zf.write(image, arc)
+            manifest.append(
+                json.dumps(
+                    {
+                        "text": s["text"],
+                        "language": s["language"],
+                        "rating": s["rating"],
+                        "engine_guess": s["engine_guess"],
+                        "image": arc,
+                    }
+                )
+            )
+        zf.writestr("manifest.jsonl", "\n".join(manifest))
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=labels_export.zip"},
+    )
+
+
+@router.post("/import")
+def import_labels(file: UploadFile = File(...)) -> dict:
+    try:
+        archive = zipfile.ZipFile(io.BytesIO(file.file.read()))
+        manifest = archive.read("manifest.jsonl").decode("utf-8").splitlines()
+    except (zipfile.BadZipFile, KeyError) as exc:
+        raise HTTPException(status_code=400, detail=f"invalid export archive: {exc}") from exc
+    imported = 0
+    for line in manifest:
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+            png = archive.read(record["image"])
+        except (KeyError, ValueError):
+            continue
+        rating = record.get("rating") if record.get("rating") in ("correct", "incorrect") else "incorrect"
+        language = record.get("language", "english")
+        if not language.isalpha():
+            language = "english"
+        store.add_sample(png, record.get("text", ""), language, rating, record.get("engine_guess"))
+        imported += 1
+    return {"imported": imported}
