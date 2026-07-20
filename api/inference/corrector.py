@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import ollama
 
 from api.util import settings
 
 CORRECTOR_MODEL = "gemma3:4b"
+_PROMPT_DIR = Path(__file__).parent / "prompts"
 
 LANG_NAMES = {
     "english": "English",
@@ -14,9 +17,22 @@ LANG_NAMES = {
     "japanese": "Japanese",
 }
 
+_prompt_cache: dict[str, str] = {}
+
 
 def _client() -> ollama.Client:
     return ollama.Client(host=settings.ollama_host)
+
+
+def _render_prompt(name: str, **tokens: str) -> str:
+    template = _prompt_cache.get(name)
+    if template is None:
+        template = (_PROMPT_DIR / name).read_text(encoding="utf-8")
+        _prompt_cache[name] = template
+    rendered = template
+    for key, value in tokens.items():
+        rendered = rendered.replace("{{" + key + "}}", value)
+    return rendered
 
 
 def correct(text: str, language: str, kind: str) -> str:
@@ -26,12 +42,7 @@ def correct(text: str, language: str, kind: str) -> str:
     lang = LANG_NAMES.get(language, "English")
     unit = "sentence" if kind == "line" else "word"
     grammar = " and grammar" if unit == "sentence" else ""
-    prompt = (
-        f"You are correcting handwriting-OCR output written in {lang}. "
-        f"The text is a single {unit}. Fix OCR and spelling{grammar} errors while staying "
-        f"faithful to what was written; do not translate or add words. "
-        f"Reply with ONLY the corrected {unit} in {lang} — no quotes, labels, or explanation.\n\n{text}"
-    )
+    prompt = _render_prompt("correct.md", LANG=lang, UNIT=unit, GRAMMAR=grammar, TEXT=text)
     try:
         resp = _client().generate(
             model=CORRECTOR_MODEL,
@@ -54,12 +65,7 @@ def detect_and_correct(text: str, kind: str) -> tuple[str, str]:
         return text, "english"
     unit = "sentence" if kind == "line" else "word"
     grammar = " and grammar" if unit == "sentence" else ""
-    prompt = (
-        f"You are processing handwriting-OCR output: a single {unit}.\n"
-        f"1) Identify its language: one of english, spanish, catalan, chinese, japanese.\n"
-        f"2) Fix OCR and spelling{grammar} errors, staying faithful; do not translate.\n"
-        f"Respond in exactly two lines:\nLANG: <language>\nTEXT: <corrected {unit}>\n\n{text}"
-    )
+    prompt = _render_prompt("detect_correct.md", UNIT=unit, GRAMMAR=grammar, TEXT=text)
     try:
         resp = _client().generate(
             model=CORRECTOR_MODEL,
