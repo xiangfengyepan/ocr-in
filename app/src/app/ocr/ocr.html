@@ -1,9 +1,50 @@
-<mat-card class="stub" appearance="outlined">
+<mat-card class="ocr" appearance="outlined">
   <mat-card-header>
-    <mat-card-title>OCR — searchable PDF</mat-card-title>
+    <mat-card-title>OCR — image to text</mat-card-title>
+    <mat-card-subtitle>Upload a handwriting image; it is segmented into lines and read (docTR + TrOCR).</mat-card-subtitle>
   </mat-card-header>
+
   <mat-card-content>
-    <p>Upload a handwritten PDF and download a searchable PDF plus a text export.</p>
-    <p class="muted">Coming in Phase 3 (detector → recognizer → invisible-text overlay).</p>
+    <div class="controls">
+      <button mat-stroked-button (click)="fileInput.click()">Choose image</button>
+      <input #fileInput type="file" accept="image/*" hidden (change)="onFile($event)" />
+      <mat-form-field appearance="outline" class="lang" subscriptSizing="dynamic">
+        <mat-label>Language</mat-label>
+        <mat-select [value]="language()" (selectionChange)="setLanguage($event.value)">
+          @for (l of languages; track l) { <mat-option [value]="l">{{ l }}</mat-option> }
+        </mat-select>
+      </mat-form-field>
+      <mat-slide-toggle [checked]="correct()" (change)="correct.set($event.checked)">Correct with gemma</mat-slide-toggle>
+      <button mat-flat-button color="primary" [disabled]="!image() || loading()" (click)="recognize()">
+        @if (loading()) { <mat-progress-spinner diameter="18" mode="indeterminate" /> } @else { Recognize }
+      </button>
+    </div>
+
+    @if (!image()) {
+      <div class="dropzone" (dragover)="onDragOver($event)" (drop)="onDrop($event)">
+        Drop an image here, or use “Choose image”.
+      </div>
+    } @else {
+      <div class="preview" (dragover)="onDragOver($event)" (drop)="onDrop($event)">
+        <img [src]="image()" alt="uploaded" />
+        @if (result(); as r) {
+          <svg class="overlay" [attr.viewBox]="'0 0 ' + r.width + ' ' + r.height" preserveAspectRatio="none">
+            @for (ln of r.lines; track $index) {
+              <rect class="box" [attr.x]="ln.box[0]" [attr.y]="ln.box[1]"
+                [attr.width]="ln.box[2] - ln.box[0]" [attr.height]="ln.box[3] - ln.box[1]" />
+            }
+          </svg>
+        }
+      </div>
+    }
+
+    @if (loading()) {
+      <p class="hint">Segmenting + reading… (first run loads the models, ~10–20s)</p>
+    }
+
+    @if (result(); as r) {
+      <h3>Text ({{ r.lines.length }} line{{ r.lines.length === 1 ? '' : 's' }})</h3>
+      <pre class="text">{{ r.text }}</pre>
+    }
   </mat-card-content>
 </mat-card>

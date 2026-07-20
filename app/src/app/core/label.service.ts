@@ -10,6 +10,8 @@ export type Mode = 'auto' | 'word' | 'line';
 export type Language = 'auto' | 'english' | 'spanish' | 'catalan' | 'chinese' | 'japanese';
 
 export interface CorrectResponse { corrected: string; language: string; }
+export interface OcrLine { box: number[]; text: string; }
+export interface OcrResult { width: number; height: number; lines: OcrLine[]; text: string; }
 
 export interface GuessResponse { guess: string; confidence: number; kind: Kind; engine: string; }
 export interface SampleBody {
@@ -72,5 +74,8 @@ export class LabelService {
     const form = new FormData();
     form.append('file', file);
     return this.http.post<{ imported: number }>(`${API}/label/import`, form);
+  }
+  recognizeImage(image: string, correct: boolean, language: Language): Observable<OcrResult> {
+    return this.http.post<OcrResult>(`${API}/ocr/recognize`, { image, correct, language });
   }
 }
