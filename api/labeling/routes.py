@@ -5,6 +5,7 @@ import io
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from PIL import Image
 from pydantic import BaseModel
 
@@ -14,6 +15,8 @@ from api.util import settings
 
 router = APIRouter(prefix="/label", tags=["labeling"])
 store = SampleStore(settings.collected_dir)
+
+Rating = Literal["correct", "incorrect"]
 
 
 def _decode_png(image: str) -> bytes:
@@ -35,7 +38,7 @@ class GuessResponse(BaseModel):
 class SampleRequest(BaseModel):
     image: str
     language: str
-    rating: Literal["correct", "partial", "wrong"]
+    rating: Rating
     text: str
     engine_guess: str | None = None
 
@@ -43,6 +46,11 @@ class SampleRequest(BaseModel):
 class SampleResponse(BaseModel):
     id: int
     image_path: str
+
+
+class UpdateRequest(BaseModel):
+    text: str | None = None
+    rating: Rating | None = None
 
 
 @router.post("/guess", response_model=GuessResponse)
@@ -68,6 +76,40 @@ def sample(req: SampleRequest) -> SampleResponse:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return SampleResponse(**result)
+
+
+@router.get("/samples")
+def samples(limit: int = 100, offset: int = 0) -> list[dict]:
+    return store.list_samples(limit, offset)
+
+
+@router.get("/image/{sample_id}")
+def image(sample_id: int) -> FileResponse:
+    record = store.get_sample(sample_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="sample not found")
+    path = store.root / record["image_path"]
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="image file missing")
+    return FileResponse(path, media_type="image/png")
+
+
+@router.patch("/sample/{sample_id}")
+def update(sample_id: int, req: UpdateRequest) -> dict:
+    try:
+        updated = store.update_sample(sample_id, text=req.text, rating=req.rating)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if updated is None:
+        raise HTTPException(status_code=404, detail="sample not found")
+    return updated
+
+
+@router.delete("/sample/{sample_id}")
+def delete(sample_id: int) -> dict:
+    if not store.delete_sample(sample_id):
+        raise HTTPException(status_code=404, detail="sample not found")
+    return {"deleted": sample_id}
 
 
 @router.get("/stats")

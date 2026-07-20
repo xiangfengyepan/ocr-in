@@ -72,7 +72,7 @@ def test_sample_stores_cropped_image(tmp_path):
         json={
             "image": data_url,
             "language": "english",
-            "rating": "wrong",
+            "rating": "incorrect",
             "text": "hi",
             "engine_guess": "h1",
         },
@@ -95,3 +95,47 @@ def test_sample_bad_language_returns_400(tmp_path):
         },
     )
     assert resp.status_code == 400
+
+
+def _add(client, text, rating="correct"):
+    return client.post(
+        "/label/sample",
+        json={
+            "image": _png_data_url(),
+            "language": "english",
+            "rating": rating,
+            "text": text,
+            "engine_guess": text,
+        },
+    ).json()["id"]
+
+
+def test_samples_list_and_image(tmp_path):
+    client = _client(tmp_path)
+    _add(client, "one")
+    sid = _add(client, "two", rating="incorrect")
+    rows = client.get("/label/samples").json()
+    assert [r["text"] for r in rows] == ["two", "one"]  # newest first
+    img = client.get(f"/label/image/{sid}")
+    assert img.status_code == 200
+    assert img.headers["content-type"] == "image/png"
+    assert client.get("/label/image/9999").status_code == 404
+
+
+def test_patch_sample(tmp_path):
+    client = _client(tmp_path)
+    sid = _add(client, "gues", rating="incorrect")
+    resp = client.patch(f"/label/sample/{sid}", json={"text": "guess", "rating": "correct"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["text"] == "guess" and body["rating"] == "correct"
+    assert client.patch(f"/label/sample/{sid}", json={"rating": "maybe"}).status_code == 422
+    assert client.patch("/label/sample/9999", json={"text": "x"}).status_code == 404
+
+
+def test_delete_sample(tmp_path):
+    client = _client(tmp_path)
+    sid = _add(client, "junk")
+    assert client.delete(f"/label/sample/{sid}").status_code == 200
+    assert client.get("/label/samples").json() == []
+    assert client.delete(f"/label/sample/{sid}").status_code == 404

@@ -24,10 +24,9 @@
       <p>Guess: <strong>{{ guess() }}</strong> <em>({{ confidence() | number:'1.2-2' }})</em></p>
       <div class="ratings">
         <button [class.sel]="rating()==='correct'" (click)="rate('correct')">Correct</button>
-        <button [class.sel]="rating()==='partial'" (click)="rate('partial')">Partial</button>
-        <button [class.sel]="rating()==='wrong'" (click)="rate('wrong')">Wrong</button>
+        <button [class.sel]="rating()==='incorrect'" (click)="rate('incorrect')">Incorrect</button>
       </div>
-      @if (rating() === 'partial' || rating() === 'wrong') {
+      @if (rating() === 'incorrect') {
         <label>Correct text
           <input [value]="text()" (input)="text.set($any($event.target).value)" />
         </label>
