@@ -50,6 +50,11 @@ torchvision = { index = "pytorch-cu128" }
 [tool.uv]
 default-groups = ["api", "training", "dev"]
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:Using `httpx` with `starlette.testclient`",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
