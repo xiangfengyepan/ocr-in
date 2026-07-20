@@ -57,13 +57,19 @@ def main() -> None:
     client = ollama.Client(host=args.host)
     refs: list[str] = []
     hyps: list[str] = []
+    errors = 0
     for i, s in enumerate(split, start=1):
         img_b64 = base64.b64encode(s.image_path.read_bytes()).decode()
-        resp = client.generate(model=args.model, prompt=PROMPT[args.level], images=[img_b64])
-        hyps.append(_clean(resp["response"]))
+        try:
+            resp = client.generate(model=args.model, prompt=PROMPT[args.level], images=[img_b64])
+            hyps.append(_clean(resp["response"]))
+        except Exception as exc:
+            errors += 1
+            hyps.append("")
+            print(f"  [error {i}] {str(exc)[:100]}", flush=True)
         refs.append(s.text)
         if i % 25 == 0:
-            print(f"  {args.level} {i}/{len(split)}", flush=True)
+            print(f"  {args.level} {i}/{len(split)} (errors={errors})", flush=True)
     print(
         f"ollama_vlm ({args.model}) {args.level} {args.split}: n={len(refs)} "
         f"CER {cer(refs, hyps):.4f} WER {wer(refs, hyps):.4f}"

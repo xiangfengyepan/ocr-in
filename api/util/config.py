@@ -12,6 +12,7 @@ class Settings(BaseSettings):
 
     models_dir: Path = REPO_ROOT / "models"
     datasets_dir: Path = REPO_ROOT / "datasets"
+    collected_dir: Path = REPO_ROOT / "datasets" / "collected"
     ollama_host: str = "http://localhost:11434"
 
 

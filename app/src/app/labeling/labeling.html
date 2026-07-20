@@ -1,0 +1,38 @@
+<section class="labeling">
+  <div class="controls">
+    <label>Language
+      <select [value]="language()" (change)="language.set($any($event.target).value)">
+        @for (l of languages; track l) { <option [value]="l">{{ l }}</option> }
+      </select>
+    </label>
+    <span class="count">Saved: {{ total() }}</span>
+  </div>
+
+  <canvas #canvas width="800" height="200"
+    (pointerdown)="onPointerDown($event)"
+    (pointermove)="onPointerMove($event)"
+    (pointerup)="onPointerUp()"
+    (pointerleave)="onPointerUp()"></canvas>
+
+  <div class="actions">
+    <button (click)="clear()">Clear</button>
+    <button (click)="doGuess()">Guess</button>
+  </div>
+
+  @if (guess() !== null) {
+    <div class="result">
+      <p>Guess: <strong>{{ guess() }}</strong> <em>({{ confidence() | number:'1.2-2' }})</em></p>
+      <div class="ratings">
+        <button [class.sel]="rating()==='correct'" (click)="rate('correct')">Correct</button>
+        <button [class.sel]="rating()==='partial'" (click)="rate('partial')">Partial</button>
+        <button [class.sel]="rating()==='wrong'" (click)="rate('wrong')">Wrong</button>
+      </div>
+      @if (rating() === 'partial' || rating() === 'wrong') {
+        <label>Correct text
+          <input [value]="text()" (input)="text.set($any($event.target).value)" />
+        </label>
+      }
+      <button class="save" [disabled]="!rating()" (click)="save()">Save</button>
+    </div>
+  }
+</section>
