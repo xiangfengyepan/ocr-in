@@ -1,0 +1,34 @@
+<h2 mat-dialog-title>Sample #{{ sample.id }}</h2>
+<mat-dialog-content class="detail">
+  <img [src]="imageUrl()" [alt]="'sample ' + sample.id" />
+
+  <div class="fields">
+    <mat-form-field appearance="outline">
+      <mat-label>Model guess</mat-label>
+      <input matInput [value]="sample.engine_guess || '—'" readonly />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Correction</mat-label>
+      <input matInput [value]="sample.text" (input)="setText($any($event.target).value)" />
+    </mat-form-field>
+  </div>
+
+  <mat-button-toggle-group class="rating-toggle" [value]="sample.rating"
+    (change)="setRating($event.value)" hideSingleSelectionIndicator>
+    <mat-button-toggle class="toggle-correct" value="correct">Correct</mat-button-toggle>
+    <mat-button-toggle class="toggle-incorrect" value="incorrect">Incorrect</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  <div class="saving-row">
+    @if (saving()) {
+      <mat-progress-spinner diameter="16" mode="indeterminate" />
+      <span>Saving…</span>
+    } @else {
+      <span class="hint">Changes save automatically.</span>
+    }
+  </div>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-stroked-button color="warn" (click)="remove()">Delete</button>
+  <button mat-flat-button (click)="close()">Close</button>
+</mat-dialog-actions>
