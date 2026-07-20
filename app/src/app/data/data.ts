@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { finalize } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,6 +10,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { LabelService, Rating, Sample } from '../core/label.service';
 import { ToastService } from '../shared/toast.service';
 import { ConfirmDialog } from '../shared/components/confirm-dialog/confirm-dialog';
+
+const TEXT_DEBOUNCE_MS = 700;
 
 @Component({
   selector: 'app-data',
@@ -24,15 +26,22 @@ import { ConfirmDialog } from '../shared/components/confirm-dialog/confirm-dialo
   templateUrl: './data.html',
   styleUrl: './data.scss',
 })
-export class Data implements OnInit {
+export class Data implements OnInit, OnDestroy {
   private svc = inject(LabelService);
   private toast = inject(ToastService);
   private dialog = inject(MatDialog);
+  private saveTimers = new Map<number, ReturnType<typeof setTimeout>>();
+
   samples = signal<Sample[]>([]);
   loading = signal(false);
+  savingIds = signal<Set<number>>(new Set());
 
   ngOnInit(): void {
     this.reload();
+  }
+
+  ngOnDestroy(): void {
+    for (const timer of this.saveTimers.values()) clearTimeout(timer);
   }
 
   reload(): void {
@@ -47,20 +56,27 @@ export class Data implements OnInit {
     return this.svc.imageUrl(id);
   }
 
+  isSaving(id: number): boolean {
+    return this.savingIds().has(id);
+  }
+
   setText(s: Sample, value: string): void {
     s.text = value;
+    const existing = this.saveTimers.get(s.id);
+    if (existing) clearTimeout(existing);
+    this.saveTimers.set(
+      s.id,
+      setTimeout(() => {
+        this.saveTimers.delete(s.id);
+        this.persist(s);
+      }, TEXT_DEBOUNCE_MS),
+    );
   }
 
   setRating(s: Sample, rating: Rating): void {
     s.rating = rating;
     this.samples.set([...this.samples()]);
-  }
-
-  save(s: Sample): void {
-    this.svc.updateSample(s.id, { text: s.text, rating: s.rating }).subscribe({
-      next: () => this.toast.success('Sample updated'),
-      error: () => this.toast.error('Could not update the sample.'),
-    });
+    this.persist(s);
   }
 
   remove(s: Sample): void {
@@ -83,5 +99,22 @@ export class Data implements OnInit {
           error: () => this.toast.error('Could not delete the sample.'),
         });
       });
+  }
+
+  private persist(s: Sample): void {
+    this.setSaving(s.id, true);
+    this.svc
+      .updateSample(s.id, { text: s.text, rating: s.rating })
+      .pipe(finalize(() => this.setSaving(s.id, false)))
+      .subscribe({
+        error: () => this.toast.error('Could not save the change.'),
+      });
+  }
+
+  private setSaving(id: number, on: boolean): void {
+    const next = new Set(this.savingIds());
+    if (on) next.add(id);
+    else next.delete(id);
+    this.savingIds.set(next);
   }
 }

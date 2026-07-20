@@ -14,6 +14,12 @@
   <div class="grid">
     @for (s of samples(); track s.id) {
       <mat-card class="card" appearance="outlined">
+        <div class="card-top">
+          <span class="lang">{{ s.language }}</span>
+          @if (isSaving(s.id)) {
+            <mat-progress-spinner class="saving" diameter="18" mode="indeterminate" />
+          }
+        </div>
         <img [src]="imageUrl(s.id)" [alt]="'sample ' + s.id" />
         <mat-form-field appearance="outline" class="text">
           <mat-label>Text</mat-label>
@@ -23,11 +29,7 @@
           <mat-button-toggle value="correct">Correct</mat-button-toggle>
           <mat-button-toggle value="incorrect">Incorrect</mat-button-toggle>
         </mat-button-toggle-group>
-        <div class="actions">
-          <button mat-flat-button color="primary" (click)="save(s)">Save</button>
-          <button mat-stroked-button color="warn" (click)="remove(s)">Delete</button>
-        </div>
-        <span class="lang">{{ s.language }}</span>
+        <button mat-stroked-button color="warn" class="delete" (click)="remove(s)">Delete</button>
       </mat-card>
     }
   </div>

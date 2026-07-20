@@ -21,6 +21,16 @@
   gap: 0.6rem;
   padding: 0.75rem;
 }
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 20px;
+}
+.card-top .lang {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8rem;
+}
 .card img {
   width: 100%;
   height: 72px;
@@ -31,11 +41,4 @@
 }
 .card .text { width: 100%; }
 .card mat-button-toggle-group { width: 100%; }
-.card .actions {
-  display: flex;
-  gap: 0.5rem;
-}
-.card .lang {
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.8rem;
-}
+.card .delete { align-self: flex-start; }
