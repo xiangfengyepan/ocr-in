@@ -21,10 +21,16 @@
           }
         </div>
         <img [src]="imageUrl(s.id)" [alt]="'sample ' + s.id" />
-        <mat-form-field appearance="outline" class="text">
-          <mat-label>Text</mat-label>
-          <input matInput [value]="s.text" (input)="setText(s, $any($event.target).value)" />
-        </mat-form-field>
+        <div class="fields">
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>Model guess</mat-label>
+            <input matInput [value]="s.engine_guess || '—'" readonly />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>Correction</mat-label>
+            <input matInput [value]="s.text" (input)="setText(s, $any($event.target).value)" />
+          </mat-form-field>
+        </div>
         <mat-button-toggle-group [value]="s.rating" (change)="setRating(s, $event.value)" hideSingleSelectionIndicator>
           <mat-button-toggle value="correct">Correct</mat-button-toggle>
           <mat-button-toggle value="incorrect">Incorrect</mat-button-toggle>

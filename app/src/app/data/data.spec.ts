@@ -27,8 +27,12 @@ describe('Data', () => {
 
     const el: HTMLElement = fixture.nativeElement;
     expect(el.textContent).toContain('Labeled data');
-    expect(el.querySelector('input')).toBeTruthy();
     expect(el.querySelector('img')).toBeTruthy();
+    // model guess (read-only) shown side by side with the editable correction
+    const inputs = el.querySelectorAll('input');
+    expect(inputs.length).toBe(2);
+    expect(el.textContent).toContain('Model guess');
+    expect(el.textContent).toContain('Correction');
     // no explicit Save button — edits auto-save
     expect(el.textContent).not.toContain('Save');
     httpMock.verify();

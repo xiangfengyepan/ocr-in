@@ -11,7 +11,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1rem;
 }
 
@@ -39,6 +39,13 @@
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: 4px;
 }
-.card .text { width: 100%; }
+.card .fields {
+  display: flex;
+  gap: 0.5rem;
+}
+.card .fields .field {
+  flex: 1;
+  min-width: 0;
+}
 .card mat-button-toggle-group { width: 100%; }
 .card .delete { align-self: flex-start; }
