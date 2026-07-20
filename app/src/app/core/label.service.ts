@@ -2,7 +2,11 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export const API = 'http://localhost:8000';
+export let API = 'http://localhost:8000';
+
+export function setApiBase(url: string | undefined | null): void {
+  if (url) API = url.replace(/\/+$/, '');
+}
 
 export type Rating = 'correct' | 'incorrect';
 export type Kind = 'word' | 'line';
@@ -75,7 +79,22 @@ export class LabelService {
     form.append('file', file);
     return this.http.post<{ imported: number }>(`${API}/label/import`, form);
   }
-  recognizeImage(image: string, correct: boolean, language: Language): Observable<OcrResult> {
-    return this.http.post<OcrResult>(`${API}/ocr/recognize`, { image, correct, language });
+  recognizeImage(image: string): Observable<OcrResult> {
+    return this.http.post<OcrResult>(`${API}/ocr/recognize`, { image });
+  }
+  correctLines(lines: OcrLine[], language: Language): Observable<{ lines: OcrLine[] }> {
+    return this.http.post<{ lines: OcrLine[] }>(`${API}/ocr/correct`, { lines, language });
+  }
+  saveOcr(
+    image: string, language: Language, lines: { box: number[]; text: string; guess: string | null }[],
+  ): Observable<{ saved: number }> {
+    return this.http.post<{ saved: number }>(`${API}/ocr/save`, { image, language, lines });
+  }
+  exportPdf(image: string, width: number, height: number, lines: OcrLine[]): Observable<Blob> {
+    return this.http.post(
+      `${API}/ocr/pdf`,
+      { image, width, height, lines },
+      { responseType: 'blob' },
+    );
   }
 }

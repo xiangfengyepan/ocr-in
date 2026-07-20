@@ -1,7 +1,7 @@
 <mat-card class="ocr" appearance="outlined">
   <mat-card-header>
     <mat-card-title>OCR — image to text</mat-card-title>
-    <mat-card-subtitle>Upload a handwriting image; it is segmented into lines and read (docTR + TrOCR).</mat-card-subtitle>
+    <mat-card-subtitle>Upload a handwriting image; it is read into a selectable text layer you can edit and export as a searchable PDF.</mat-card-subtitle>
   </mat-card-header>
 
   <mat-card-content>
@@ -14,7 +14,6 @@
           @for (l of languages; track l) { <mat-option [value]="l">{{ l }}</mat-option> }
         </mat-select>
       </mat-form-field>
-      <mat-slide-toggle [checked]="correct()" (change)="correct.set($event.checked)">Correct with gemma</mat-slide-toggle>
       <button mat-flat-button color="primary" [disabled]="!image() || loading()" (click)="recognize()">
         @if (loading()) { <mat-progress-spinner diameter="18" mode="indeterminate" /> } @else { Recognize }
       </button>
@@ -25,26 +24,55 @@
         Drop an image here, or use “Choose image”.
       </div>
     } @else {
+      @if (result()) {
+        <figure class="reference">
+          <figcaption>Original (reference)</figcaption>
+          <img [src]="image()" alt="original reference" />
+        </figure>
+      }
+      @if (result()) { <div class="preview-label">Recognized — selectable &amp; editable</div> }
       <div class="preview" (dragover)="onDragOver($event)" (drop)="onDrop($event)">
         <img [src]="image()" alt="uploaded" />
-        @if (result(); as r) {
-          <svg class="overlay" [attr.viewBox]="'0 0 ' + r.width + ' ' + r.height" preserveAspectRatio="none">
-            @for (ln of r.lines; track $index) {
-              <rect class="box" [attr.x]="ln.box[0]" [attr.y]="ln.box[1]"
-                [attr.width]="ln.box[2] - ln.box[0]" [attr.height]="ln.box[3] - ln.box[1]" />
+        @if (result()) {
+          <div class="overlay">
+            @for (ln of displayLines(); track $index) {
+              <div
+                class="line"
+                contenteditable="true"
+                spellcheck="false"
+                [style]="lineStyle(ln)"
+                (blur)="editLine($index, $event)"
+              >{{ ln.text }}</div>
             }
-          </svg>
+          </div>
         }
       </div>
     }
 
     @if (loading()) {
-      <p class="hint">Segmenting + reading… (first run loads the models, ~10–20s)</p>
+      <p class="hint">Reading… (first run loads the models, ~10–20s)</p>
     }
 
     @if (result(); as r) {
-      <h3>Text ({{ r.lines.length }} line{{ r.lines.length === 1 ? '' : 's' }})</h3>
-      <pre class="text">{{ r.text }}</pre>
+      <div class="result-bar">
+        <span class="count">{{ r.lines.length }} line{{ r.lines.length === 1 ? '' : 's' }} — select text on the image, or click a line to edit.</span>
+        <span class="spacer"></span>
+        <div class="corrected-toggle">
+          @if (correcting()) { <mat-progress-spinner diameter="18" mode="indeterminate" /> }
+          <mat-slide-toggle
+            [checked]="showCorrected()"
+            [disabled]="correcting()"
+            (change)="toggleCorrected($event.checked)"
+          >{{ showCorrected() ? 'Corrected' : 'Original' }}</mat-slide-toggle>
+        </div>
+        <button mat-stroked-button (click)="copyAll()">Copy all</button>
+        <button mat-stroked-button [disabled]="saving()" (click)="saveToData()">
+          @if (saving()) { <mat-progress-spinner diameter="18" mode="indeterminate" /> } @else { Save to Data }
+        </button>
+        <button mat-flat-button color="primary" [disabled]="exporting()" (click)="exportPdf()">
+          @if (exporting()) { <mat-progress-spinner diameter="18" mode="indeterminate" /> } @else { Export searchable PDF }
+        </button>
+      </div>
     }
   </mat-card-content>
 </mat-card>

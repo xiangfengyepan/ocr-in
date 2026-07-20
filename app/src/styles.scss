@@ -55,6 +55,24 @@ body {
   padding: 1.5rem 1rem;
 }
 
+.image-zoom-panel .mat-mdc-dialog-surface {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.rating-toggle {
+  display: flex;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.rating-toggle .mat-button-toggle {
+  flex: 1 1 0;
+}
+.rating-toggle .mat-button-toggle-button {
+  width: 100%;
+}
 .rating-toggle .toggle-correct.mat-button-toggle-checked {
   background-color: #2e7d32;
 }

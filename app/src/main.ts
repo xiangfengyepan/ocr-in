@@ -1,6 +1,17 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { App } from './app/app';
+import { setApiBase } from './app/core/label.service';
 
-bootstrapApplication(App, appConfig)
-  .catch((err) => console.error(err));
+async function loadConfig(): Promise<void> {
+  try {
+    const res = await fetch(new URL('config.json', document.baseURI), { cache: 'no-cache' });
+    if (res.ok) setApiBase((await res.json())?.apiBase);
+  } catch {
+    // no config.json → keep the built-in default API base
+  }
+}
+
+loadConfig().finally(() => {
+  bootstrapApplication(App, appConfig).catch((err) => console.error(err));
+});

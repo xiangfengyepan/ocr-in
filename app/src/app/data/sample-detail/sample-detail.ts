@@ -4,11 +4,13 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angu
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LabelService, Rating, Sample } from '../../core/label.service';
 import { ToastService } from '../../shared/toast.service';
 import { ConfirmDialog } from '../../shared/components/confirm-dialog/confirm-dialog';
+import { ImageZoom } from './image-zoom';
 
 const TEXT_DEBOUNCE_MS = 700;
 
@@ -19,6 +21,7 @@ const TEXT_DEBOUNCE_MS = 700;
     MatButtonModule,
     MatButtonToggleModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
   ],
@@ -34,6 +37,14 @@ export class SampleDetail implements OnDestroy {
 
   sample = inject<Sample>(MAT_DIALOG_DATA);
   saving = signal(false);
+
+  openZoom(): void {
+    this.dialog.open(ImageZoom, {
+      data: { url: this.imageUrl(), alt: `sample ${this.sample.id}` },
+      maxWidth: '95vw',
+      panelClass: 'image-zoom-panel',
+    });
+  }
 
   imageUrl(): string {
     return this.svc.imageUrl(this.sample.id);

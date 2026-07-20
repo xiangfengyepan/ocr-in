@@ -1,6 +1,11 @@
 <h2 mat-dialog-title>Sample #{{ sample.id }}</h2>
 <mat-dialog-content class="detail">
-  <img [src]="imageUrl()" [alt]="'sample ' + sample.id" />
+  <div class="image-wrap">
+    <img [src]="imageUrl()" [alt]="'sample ' + sample.id" />
+    <button mat-mini-fab class="zoom-btn" aria-label="Maximize image" (click)="openZoom()">
+      <mat-icon>zoom_in</mat-icon>
+    </button>
+  </div>
 
   <div class="fields">
     <mat-form-field appearance="outline">

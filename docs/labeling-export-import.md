@@ -1,7 +1,10 @@
 # Labeling data — export / import format
 
 The labeling tool stores collected samples on the server (`datasets/collected/`:
-SQLite index + PNG files). Two endpoints move that data in and out:
+SQLite index + PNG files). Samples come from two places: the **Labeling** tab
+(drawn/uploaded words and lines) and the **OCR** tab's **Save to Data** button
+(each recognized line saved as its own crop with `language: auto`). Two
+endpoints move that data in and out:
 
 - `GET /label/export` → downloads a **`.zip`** of all collected samples.
 - `POST /label/import` → merges an uploaded **`.zip`** back into the store.
@@ -29,7 +32,7 @@ One JSON object per line (not a JSON array). One line = one sample.
 |---|---|---|---|
 | `text` | string | yes | The label (the corrected/verified transcription). |
 | `image` | string | yes | Path of the PNG **inside the zip**, e.g. `images/english/1.png`. |
-| `language` | string | no | `english` \| `spanish` \| `catalan` \| `chinese` \| `japanese`. Default `english`. |
+| `language` | string | no | `auto` \| `english` \| `spanish` \| `catalan` \| `chinese` \| `japanese`. Default `english`. (`auto` is what the OCR tab's Save-to-Data writes.) |
 | `rating` | string | no | `correct` \| `incorrect`. Default `incorrect`. |
 | `engine_guess` | string \| null | no | The raw OCR output before correction (metadata). |
 
