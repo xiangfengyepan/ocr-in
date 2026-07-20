@@ -16,6 +16,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Kind, Language, LabelService } from '../core/label.service';
 import { ToastService } from '../shared/toast.service';
 
@@ -34,6 +35,7 @@ const DETECT_DEBOUNCE_MS = 400;
     MatInputModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    MatSlideToggleModule,
   ],
   templateUrl: './labeling.html',
   styleUrl: './labeling.scss',
@@ -59,6 +61,7 @@ export class Labeling implements AfterViewInit, OnDestroy {
   engine = signal<string | null>(null);
   readonly languages: Language[] = ['auto', 'english', 'spanish', 'catalan', 'chinese', 'japanese'];
   language = signal<Language>('auto');
+  autoCorrect = signal(true);
   corrected = signal<string | null>(null);
   correcting = signal(false);
   detectedLang = signal<string | null>(null);
@@ -209,7 +212,7 @@ export class Labeling implements AfterViewInit, OnDestroy {
           this.text.set(r.guess);
           this.engine.set(r.engine);
           this.rating.set(null);
-          this.correctStep(r.guess);
+          if (this.autoCorrect()) this.correctStep(r.guess);
         },
         error: () =>
           this.toast.error('Guess failed — check the API is running and the model is available.'),
