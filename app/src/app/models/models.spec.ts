@@ -19,6 +19,8 @@ describe('Models', () => {
         id: 'crnn-words', name: 'CRNN', detail: 'x', engine: 'crnn', available: true,
         source: 'models/crnn/english', best_for: 'words',
         metrics: { words: { cer: 0.103, wer: 0.24 }, lines: { cer: 0.431, wer: 1 } },
+        meta: { epoch: 54, cer: 0.103, wer: 0.24 },
+        history: [{ epoch: 1, cer: 0.5, wer: 0.7 }, { epoch: 2, cer: 0.2, wer: 0.4 }],
       },
     ]);
     fixture.detectChanges();

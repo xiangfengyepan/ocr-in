@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.engines import ENGINES
 from api.labeling.routes import router as labeling_router
-from api.model_catalog import MODEL_CATALOG
+from api.model_catalog import build_catalog
 from api.registry import ModelRegistry
 from api.util import settings
 
@@ -32,4 +32,4 @@ def list_engines() -> dict[str, list[str]]:
 
 @app.get("/models")
 def list_models() -> list[dict]:
-    return MODEL_CATALOG
+    return build_catalog(settings.models_dir)

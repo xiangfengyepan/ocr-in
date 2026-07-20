@@ -22,10 +22,13 @@ export interface Sample {
   rating: Rating; engine_guess: string | null; created_at: string;
 }
 export interface Metric { cer: number; wer: number; }
+export interface EpochStat { epoch: number; cer: number; wer: number; }
 export interface ModelInfo {
   id: string; name: string; detail: string; engine: string;
   available: boolean; source: string; best_for: 'words' | 'lines' | null;
   metrics: { words: Metric | null; lines: Metric | null };
+  meta: { epoch?: number; cer?: number; wer?: number } | null;
+  history: EpochStat[] | null;
 }
 
 @Injectable({ providedIn: 'root' })

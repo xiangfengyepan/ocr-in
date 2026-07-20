@@ -17,6 +17,8 @@
   color: var(--mat-sys-on-surface-variant);
   font-weight: 600;
 }
+.tbl tr.has-history { cursor: pointer; }
+.tbl tr.has-history:hover td { background: var(--mat-sys-surface-container); }
 .tbl .name { font-weight: 600; }
 .tbl .detail {
   font-size: 0.78rem;

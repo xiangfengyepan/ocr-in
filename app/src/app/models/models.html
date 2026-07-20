@@ -1,7 +1,7 @@
 <mat-card appearance="outlined" class="models">
   <mat-card-header>
     <mat-card-title>Models</mat-card-title>
-    <mat-card-subtitle>Handwriting-recognition accuracy on IAM (CER / WER — lower is better)</mat-card-subtitle>
+    <mat-card-subtitle>Accuracy on IAM (CER / WER — lower is better). Click a trained model for its training curve.</mat-card-subtitle>
   </mat-card-header>
   <mat-card-content>
     <div class="scroll">
@@ -19,7 +19,8 @@
         </thead>
         <tbody>
           @for (m of models(); track m.id) {
-            <tr>
+            <tr class="row" [class.has-history]="m.history?.length" (click)="open(m)"
+              [attr.title]="m.history?.length ? 'Click for training curve' : 'No training history'">
               <td>
                 <div class="name">{{ m.name }}</div>
                 <div class="detail">{{ m.detail }}</div>

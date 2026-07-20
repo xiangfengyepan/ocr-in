@@ -103,6 +103,7 @@ def train(args) -> None:
 
     args.out.mkdir(parents=True, exist_ok=True)
     best_cer = float("inf")
+    history: list[dict] = []
 
     for epoch in range(1, args.epochs + 1):
         model.train()
@@ -129,6 +130,10 @@ def train(args) -> None:
         print(f"epoch {epoch} val CER {metrics['cer']:.4f} WER {metrics['wer']:.4f}")
         for ref, hyp in metrics["samples"]:
             print(f"    ref={ref!r} hyp={hyp!r}")
+        history.append(
+            {"epoch": epoch, "cer": round(metrics["cer"], 4), "wer": round(metrics["wer"], 4)}
+        )
+        (args.out / "history.json").write_text(json.dumps(history))
         if metrics["cer"] < best_cer:
             best_cer = metrics["cer"]
             model.save_pretrained(args.out)
