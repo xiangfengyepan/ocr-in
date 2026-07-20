@@ -4,6 +4,7 @@ from pathlib import Path
 
 import ollama
 
+from api.inference.language_detect import script_guess
 from api.util import settings
 
 CORRECTOR_MODEL = "gemma3:4b"
@@ -35,53 +36,64 @@ def _render_prompt(name: str, **tokens: str) -> str:
     return rendered
 
 
-def correct(text: str, language: str, kind: str) -> str:
-    text = (text or "").strip()
-    if not text:
-        return text
-    lang = LANG_NAMES.get(language, "English")
-    unit = "sentence" if kind == "line" else "word"
-    grammar = " and grammar" if unit == "sentence" else ""
-    prompt = _render_prompt("correct.md", LANG=lang, UNIT=unit, GRAMMAR=grammar, TEXT=text)
-    try:
-        resp = _client().generate(
-            model=CORRECTOR_MODEL,
-            prompt=prompt,
-            options={"temperature": 0, "num_predict": 64},
+def _build_hint(language: str, text: str) -> tuple[str, str | None]:
+    """Return (hint_text, resolved_hint_language). A null hint (auto) yields None."""
+    if language in LANG_NAMES:
+        return (
+            f'The text is expected to be in {LANG_NAMES[language]}, but treat this ONLY as a hint '
+            f"to help read ambiguous characters — if it is clearly another language, keep it as-is.",
+            language,
         )
-        lines = [ln for ln in resp["response"].strip().splitlines() if ln.strip()]
-        return lines[0].strip().strip('"').strip("'") if lines else text
-    except Exception:
-        return text
+    scripted = script_guess(text)
+    if scripted:
+        return (f"The text is written in {LANG_NAMES[scripted]}.", scripted)
+    return ("The language is not given — determine which language the text is actually written in.", None)
 
 
-def detect_and_correct(text: str, kind: str) -> tuple[str, str]:
-    """Auto mode: gemma identifies the language and corrects in one call.
+def correct(text: str, language: str, kind: str) -> tuple[str, str]:
+    """Correct OCR output. Returns (corrected_text, language).
 
-    Returns (corrected_text, language).
+    `language` is one of the supported codes or "auto". In auto mode the hint is
+    null and the model identifies the language itself (with a fast script check
+    for Japanese/Chinese first).
     """
     text = (text or "").strip()
+    default_lang = language if language in LANG_NAMES else "english"
     if not text:
-        return text, "english"
+        return text, default_lang
+
     unit = "sentence" if kind == "line" else "word"
     grammar = " and grammar" if unit == "sentence" else ""
-    prompt = _render_prompt("detect_correct.md", UNIT=unit, GRAMMAR=grammar, TEXT=text)
+    is_auto = language not in LANG_NAMES
+    hint_text, hint_lang = _build_hint(language, text)
+    prompt = _render_prompt("correct.md", HINT=hint_text, UNIT=unit, GRAMMAR=grammar, TEXT=text)
+
     try:
         resp = _client().generate(
             model=CORRECTOR_MODEL,
             prompt=prompt,
             options={"temperature": 0, "num_predict": 96},
         )
-        language, corrected = "english", text
-        for line in resp["response"].splitlines():
+        raw = resp["response"]
+        corrected: str | None = None
+        reported: str | None = None
+        for line in raw.splitlines():
             stripped = line.strip()
             low = stripped.lower()
             if low.startswith("lang:"):
                 value = stripped.split(":", 1)[1].strip().lower()
                 if value in LANG_NAMES:
-                    language = value
+                    reported = value
             elif low.startswith("text:"):
                 corrected = stripped.split(":", 1)[1].strip().strip('"').strip("'")
-        return corrected, language
+        if corrected is None:
+            fallback = [
+                ln.strip() for ln in raw.strip().splitlines()
+                if ln.strip() and not ln.strip().lower().startswith("lang:")
+            ]
+            corrected = fallback[0].strip('"').strip("'") if fallback else text
+
+        language_out = (hint_lang or reported or "english") if is_auto else language
+        return corrected, language_out
     except Exception:
-        return text, "english"
+        return text, default_lang

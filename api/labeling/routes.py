@@ -10,10 +10,8 @@ from PIL import Image
 from pydantic import BaseModel
 
 from api.inference.corrector import correct as correct_text
-from api.inference.corrector import detect_and_correct
 from api.inference.crnn_recognizer import crop_to_ink, get_recognizer
 from api.inference.kind_detector import detect_kind
-from api.inference.language_detect import script_guess
 from api.inference.trocr_recognizer import get_trocr_recognizer
 from api.labeling.store import SampleStore
 from api.util import settings
@@ -89,16 +87,8 @@ def detect(req: DetectRequest) -> DetectResponse:
 
 @router.post("/correct", response_model=CorrectResponse)
 def correct(req: CorrectRequest) -> CorrectResponse:
-    if req.language == "auto":
-        scripted = script_guess(req.text)
-        if scripted:
-            return CorrectResponse(
-                corrected=correct_text(req.text, scripted, req.kind), language=scripted
-            )
-        corrected, language = detect_and_correct(req.text, req.kind)
-        return CorrectResponse(corrected=corrected, language=language)
-    corrected = correct_text(req.text, req.language, req.kind)
-    return CorrectResponse(corrected=corrected, language=req.language)
+    corrected, language = correct_text(req.text, req.language, req.kind)
+    return CorrectResponse(corrected=corrected, language=language)
 
 
 @router.post("/guess", response_model=GuessResponse)

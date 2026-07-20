@@ -83,7 +83,7 @@ def test_sample_stores_cropped_image(tmp_path):
 def test_correct_manual_language(tmp_path, monkeypatch):
     from api.labeling import routes
 
-    monkeypatch.setattr(routes, "correct_text", lambda text, lang, kind: text.upper())
+    monkeypatch.setattr(routes, "correct_text", lambda text, language, kind: (text.upper(), language))
     client = _client(tmp_path)
     resp = client.post(
         "/label/correct", json={"text": "hi", "language": "english", "kind": "word"}
@@ -92,26 +92,15 @@ def test_correct_manual_language(tmp_path, monkeypatch):
     assert resp.json() == {"corrected": "HI", "language": "english"}
 
 
-def test_correct_auto_uses_llm_detection(tmp_path, monkeypatch):
+def test_correct_auto_returns_detected_language(tmp_path, monkeypatch):
     from api.labeling import routes
 
-    monkeypatch.setattr(routes, "script_guess", lambda t: None)
-    monkeypatch.setattr(routes, "detect_and_correct", lambda text, kind: ("corregido", "spanish"))
+    monkeypatch.setattr(routes, "correct_text", lambda text, language, kind: ("corregido", "spanish"))
     client = _client(tmp_path)
     resp = client.post(
         "/label/correct", json={"text": "hola", "language": "auto", "kind": "line"}
     )
     assert resp.json() == {"corrected": "corregido", "language": "spanish"}
-
-
-def test_correct_auto_script_fast_path(tmp_path, monkeypatch):
-    from api.labeling import routes
-
-    monkeypatch.setattr(routes, "script_guess", lambda t: "japanese")
-    monkeypatch.setattr(routes, "correct_text", lambda text, lang, kind: f"{text}!")
-    client = _client(tmp_path)
-    resp = client.post("/label/correct", json={"text": "あ", "language": "auto", "kind": "word"})
-    assert resp.json() == {"corrected": "あ!", "language": "japanese"}
 
 
 def _add(client, text, rating="correct"):
