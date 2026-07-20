@@ -1,0 +1,30 @@
+<section class="data">
+  <div class="head">
+    <h2>Labeled data</h2>
+    <button (click)="reload()">Refresh</button>
+  </div>
+
+  @if (samples().length === 0) {
+    <p class="muted">No labeled samples yet. Draw and save some on the Labeling tab.</p>
+  }
+
+  <div class="grid">
+    @for (s of samples(); track s.id) {
+      <div class="card">
+        <img [src]="imageUrl(s.id)" [alt]="'sample ' + s.id" />
+        <input [value]="s.text" (input)="setText(s, $any($event.target).value)" />
+        <div class="row">
+          <div class="ratings">
+            <button [class.sel]="s.rating === 'correct'" (click)="setRating(s, 'correct')">Correct</button>
+            <button [class.sel]="s.rating === 'incorrect'" (click)="setRating(s, 'incorrect')">Incorrect</button>
+          </div>
+          <span class="lang">{{ s.language }}</span>
+        </div>
+        <div class="row">
+          <button class="save" (click)="save(s)">Save</button>
+          <button class="del" (click)="remove(s)">Delete</button>
+        </div>
+      </div>
+    }
+  </div>
+</section>

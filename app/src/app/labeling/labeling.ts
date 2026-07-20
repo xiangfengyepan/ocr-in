@@ -2,7 +2,7 @@ import { AfterViewInit, Component, ElementRef, inject, signal, viewChild } from 
 import { DecimalPipe } from '@angular/common';
 import { LabelService } from '../core/label.service';
 
-type Rating = 'correct' | 'partial' | 'wrong';
+type Rating = 'correct' | 'incorrect';
 
 @Component({
   selector: 'app-labeling',
