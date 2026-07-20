@@ -8,7 +8,7 @@ export type Rating = 'correct' | 'incorrect';
 
 export interface GuessResponse { guess: string; confidence: number; }
 export interface SampleBody {
-  image: string; language: string;
+  image: string;
   rating: Rating; text: string; engine_guess: string | null;
 }
 export interface StatsResponse { total: number; by_rating: Record<string, number>; }
@@ -21,8 +21,8 @@ export interface Sample {
 export class LabelService {
   private http = inject(HttpClient);
 
-  guess(image: string, language: string): Observable<GuessResponse> {
-    return this.http.post<GuessResponse>(`${API}/label/guess`, { image, language });
+  guess(image: string): Observable<GuessResponse> {
+    return this.http.post<GuessResponse>(`${API}/label/guess`, { image });
   }
   sample(body: SampleBody): Observable<{ id: number; image_path: string }> {
     return this.http.post<{ id: number; image_path: string }>(`${API}/label/sample`, body);

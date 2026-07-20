@@ -27,7 +27,6 @@ def _decode_png(image: str) -> bytes:
 
 class GuessRequest(BaseModel):
     image: str
-    language: str
 
 
 class GuessResponse(BaseModel):
@@ -37,7 +36,6 @@ class GuessResponse(BaseModel):
 
 class SampleRequest(BaseModel):
     image: str
-    language: str
     rating: Rating
     text: str
     engine_guess: str | None = None
@@ -69,12 +67,7 @@ def sample(req: SampleRequest) -> SampleResponse:
     cropped = crop_to_ink(image)
     buf = io.BytesIO()
     cropped.save(buf, format="PNG")
-    try:
-        result = store.add_sample(
-            buf.getvalue(), req.text, req.language, req.rating, req.engine_guess
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    result = store.add_sample(buf.getvalue(), req.text, "english", req.rating, req.engine_guess)
     return SampleResponse(**result)
 
 

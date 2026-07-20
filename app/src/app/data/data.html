@@ -15,7 +15,6 @@
     @for (s of samples(); track s.id) {
       <mat-card class="card" appearance="outlined">
         <div class="card-top">
-          <span class="lang">{{ s.language }}</span>
           @if (isSaving(s.id)) {
             <mat-progress-spinner class="saving" diameter="18" mode="indeterminate" />
           }

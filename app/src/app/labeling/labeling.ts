@@ -5,7 +5,6 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LabelService } from '../core/label.service';
@@ -21,7 +20,6 @@ type Rating = 'correct' | 'incorrect';
     MatButtonModule,
     MatButtonToggleModule,
     MatFormFieldModule,
-    MatSelectModule,
     MatInputModule,
     MatProgressSpinnerModule,
   ],
@@ -35,8 +33,6 @@ export class Labeling implements AfterViewInit {
   private ctx: CanvasRenderingContext2D | null = null;
   private drawing = false;
 
-  readonly languages = ['english', 'spanish', 'catalan', 'japanese', 'math'];
-  language = signal('english');
   guess = signal<string | null>(null);
   confidence = signal(0);
   rating = signal<Rating | null>(null);
@@ -88,7 +84,7 @@ export class Labeling implements AfterViewInit {
   doGuess(): void {
     this.guessing.set(true);
     this.svc
-      .guess(this.png(), this.language())
+      .guess(this.png())
       .pipe(finalize(() => this.guessing.set(false)))
       .subscribe({
         next: (r) => {
@@ -113,7 +109,6 @@ export class Labeling implements AfterViewInit {
     this.svc
       .sample({
         image: this.png(),
-        language: this.language(),
         rating: this.rating()!,
         text: this.text(),
         engine_guess: this.guess(),

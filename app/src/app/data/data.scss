@@ -24,12 +24,8 @@
 .card-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   min-height: 20px;
-}
-.card-top .lang {
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.8rem;
 }
 .card img {
   width: 100%;

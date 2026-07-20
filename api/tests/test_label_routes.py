@@ -28,7 +28,6 @@ def test_sample_and_stats_roundtrip(tmp_path):
         "/label/sample",
         json={
             "image": _png_data_url(),
-            "language": "english",
             "rating": "correct",
             "text": "hi",
             "engine_guess": "hi",
@@ -49,7 +48,7 @@ def test_sample_rejects_bad_rating(tmp_path):
     client = _client(tmp_path)
     resp = client.post(
         "/label/sample",
-        json={"image": _png_data_url(), "language": "english", "rating": "nope", "text": "x"},
+        json={"image": _png_data_url(), "rating": "nope", "text": "x"},
     )
     assert resp.status_code == 422
 
@@ -71,7 +70,6 @@ def test_sample_stores_cropped_image(tmp_path):
         "/label/sample",
         json={
             "image": data_url,
-            "language": "english",
             "rating": "incorrect",
             "text": "hi",
             "engine_guess": "h1",
@@ -82,27 +80,11 @@ def test_sample_stores_cropped_image(tmp_path):
     assert saved.size[0] < w and saved.size[1] < h  # cropped, not full canvas
 
 
-def test_sample_bad_language_returns_400(tmp_path):
-    client = _client(tmp_path)
-    resp = client.post(
-        "/label/sample",
-        json={
-            "image": _png_data_url(),
-            "language": "../evil",
-            "rating": "correct",
-            "text": "x",
-            "engine_guess": "x",
-        },
-    )
-    assert resp.status_code == 400
-
-
 def _add(client, text, rating="correct"):
     return client.post(
         "/label/sample",
         json={
             "image": _png_data_url(),
-            "language": "english",
             "rating": rating,
             "text": text,
             "engine_guess": text,

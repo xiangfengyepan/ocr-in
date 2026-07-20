@@ -6,14 +6,6 @@
 
   <mat-card-content>
     <div class="controls">
-      <mat-form-field appearance="outline" class="lang">
-        <mat-label>Language</mat-label>
-        <mat-select [value]="language()" (selectionChange)="language.set($event.value)">
-          @for (l of languages; track l) {
-            <mat-option [value]="l">{{ l }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
       <span class="count">Saved: {{ total() }}</span>
     </div>
 
