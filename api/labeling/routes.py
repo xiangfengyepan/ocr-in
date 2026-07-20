@@ -9,8 +9,11 @@ from fastapi.responses import FileResponse
 from PIL import Image
 from pydantic import BaseModel
 
+from api.inference.corrector import correct as correct_text
+from api.inference.corrector import detect_and_correct
 from api.inference.crnn_recognizer import crop_to_ink, get_recognizer
 from api.inference.kind_detector import detect_kind
+from api.inference.language_detect import script_guess
 from api.inference.trocr_recognizer import get_trocr_recognizer
 from api.labeling.store import SampleStore
 from api.util import settings
@@ -21,6 +24,7 @@ store = SampleStore(settings.collected_dir)
 Rating = Literal["correct", "incorrect"]
 Kind = Literal["word", "line"]
 Mode = Literal["auto", "word", "line"]
+Language = Literal["auto", "english", "spanish", "catalan", "chinese", "japanese"]
 
 
 def _decode_png(image: str) -> bytes:
@@ -49,6 +53,17 @@ class GuessResponse(BaseModel):
     engine: str
 
 
+class CorrectRequest(BaseModel):
+    text: str
+    language: Language = "auto"
+    kind: Kind = "word"
+
+
+class CorrectResponse(BaseModel):
+    corrected: str
+    language: str
+
+
 class SampleRequest(BaseModel):
     image: str
     rating: Rating
@@ -70,6 +85,20 @@ class UpdateRequest(BaseModel):
 def detect(req: DetectRequest) -> DetectResponse:
     image = Image.open(io.BytesIO(_decode_png(req.image)))
     return DetectResponse(kind=detect_kind(image))
+
+
+@router.post("/correct", response_model=CorrectResponse)
+def correct(req: CorrectRequest) -> CorrectResponse:
+    if req.language == "auto":
+        scripted = script_guess(req.text)
+        if scripted:
+            return CorrectResponse(
+                corrected=correct_text(req.text, scripted, req.kind), language=scripted
+            )
+        corrected, language = detect_and_correct(req.text, req.kind)
+        return CorrectResponse(corrected=corrected, language=language)
+    corrected = correct_text(req.text, req.language, req.kind)
+    return CorrectResponse(corrected=corrected, language=req.language)
 
 
 @router.post("/guess", response_model=GuessResponse)
