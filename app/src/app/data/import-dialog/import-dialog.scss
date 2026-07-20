@@ -1,0 +1,86 @@
+.import-dialog {
+  width: min(480px, 80vw);
+}
+
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  border: 2px dashed var(--mat-sys-outline);
+  border-radius: 10px;
+  text-align: center;
+  transition: background 0.1s, border-color 0.1s;
+}
+.drop.over {
+  border-color: #1565c0;
+  background: color-mix(in srgb, #1565c0 8%, transparent);
+}
+.drop .hint {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+.drop .chosen {
+  margin: 0;
+  font-weight: 500;
+}
+
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+.done-msg {
+  margin: 0.5rem 0 0;
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+.queue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.job {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+.job-name {
+  font-weight: 500;
+}
+.job-progress,
+.job-lines {
+  color: var(--mat-sys-on-surface-variant);
+}
+.job-error {
+  color: #c62828;
+  flex-basis: 100%;
+}
+
+.chip {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: capitalize;
+  color: #fff;
+}
+.chip.state-queued {
+  background: #757575;
+}
+.chip.state-processing {
+  background: #1565c0;
+}
+.chip.state-done {
+  background: #2e7d32;
+}
+.chip.state-failed {
+  background: #c62828;
+}

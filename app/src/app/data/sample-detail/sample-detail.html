@@ -7,31 +7,20 @@
     </button>
   </div>
 
-  <div class="fields">
-    <mat-form-field appearance="outline">
-      <mat-label>Model guess</mat-label>
-      <input matInput [value]="sample.engine_guess || '—'" readonly />
-    </mat-form-field>
-    <mat-form-field appearance="outline">
-      <mat-label>Correction</mat-label>
-      <input matInput [value]="sample.text" (input)="setText($any($event.target).value)" />
-    </mat-form-field>
-  </div>
+  <dl class="fields">
+    <dt>Model guess</dt>
+    <dd>{{ sample.engine_guess || '—' }}</dd>
+    <dt>Label</dt>
+    <dd>{{ sample.text }}</dd>
+    <dt>Rating</dt>
+    <dd>
+      <span class="rating-badge" [class]="'r-' + sample.rating">{{ sample.rating }}</span>
+    </dd>
+    <dt>Language</dt>
+    <dd>{{ sample.language }}</dd>
+  </dl>
 
-  <mat-button-toggle-group class="rating-toggle" [value]="sample.rating"
-    (change)="setRating($event.value)" hideSingleSelectionIndicator>
-    <mat-button-toggle class="toggle-correct" value="correct">Correct</mat-button-toggle>
-    <mat-button-toggle class="toggle-incorrect" value="incorrect">Incorrect</mat-button-toggle>
-  </mat-button-toggle-group>
-
-  <div class="saving-row">
-    @if (saving()) {
-      <mat-progress-spinner diameter="16" mode="indeterminate" />
-      <span>Saving…</span>
-    } @else {
-      <span class="hint">Changes save automatically.</span>
-    }
-  </div>
+  <p class="hint">Read-only. Edit labels from the Labeling or Review pages.</p>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-stroked-button color="warn" (click)="remove()">Delete</button>

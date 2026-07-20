@@ -1,0 +1,62 @@
+<div class="review">
+  @if (loading()) {
+    <div class="center">
+      <mat-progress-spinner diameter="48" mode="indeterminate" />
+    </div>
+  } @else if (done()) {
+    <div class="center empty">
+      <h2>All caught up</h2>
+      <p class="hint">No more pending samples to review.</p>
+      <a mat-flat-button color="primary" routerLink="/data">Back to Data</a>
+    </div>
+  } @else if (current(); as sample) {
+    <div class="stage">
+      <div class="image">
+        <img [src]="imageUrl(sample.id)" alt="sample" />
+      </div>
+
+      <div class="panel">
+        <p class="progress">{{ index() + 1 }} of {{ queue().length }}</p>
+
+        <div class="output">
+          <span class="label">Model output</span>
+          <p class="text">{{ sample.text }}</p>
+        </div>
+
+        @if (fixing()) {
+          <div class="fix">
+            <mat-form-field appearance="outline" class="fix-field" subscriptSizing="dynamic">
+              <mat-label>Correct text</mat-label>
+              <input
+                #fixInput
+                matInput
+                [value]="fixText()"
+                (input)="fixText.set($any($event.target).value)"
+              />
+            </mat-form-field>
+            <div class="fix-actions">
+              <button mat-stroked-button (click)="cancelFix()">Cancel</button>
+              <button mat-flat-button color="primary" [disabled]="saving()" (click)="saveFix()">
+                Save
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="actions">
+            <button
+              mat-flat-button
+              class="correct"
+              [disabled]="saving()"
+              (click)="markCorrect()"
+            >
+              Correct <span class="key">c</span>
+            </button>
+            <button mat-stroked-button [disabled]="saving()" (click)="openFix()">
+              Incorrect <span class="key">i</span>
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

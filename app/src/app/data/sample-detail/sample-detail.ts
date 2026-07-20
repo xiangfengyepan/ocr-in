@@ -1,42 +1,25 @@
-import { Component, OnDestroy, inject, signal } from '@angular/core';
-import { finalize } from 'rxjs';
+import { Component, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { LabelService, Rating, Sample } from '../../core/label.service';
+import { LabelService, Sample } from '../../core/label.service';
 import { ToastService } from '../../shared/toast.service';
 import { ConfirmDialog } from '../../shared/components/confirm-dialog/confirm-dialog';
 import { ImageZoom } from './image-zoom';
 
-const TEXT_DEBOUNCE_MS = 700;
-
 @Component({
   selector: 'app-sample-detail',
-  imports: [
-    MatDialogModule,
-    MatButtonModule,
-    MatButtonToggleModule,
-    MatFormFieldModule,
-    MatIconModule,
-    MatInputModule,
-    MatProgressSpinnerModule,
-  ],
+  imports: [MatDialogModule, MatButtonModule, MatIconModule],
   templateUrl: './sample-detail.html',
   styleUrl: './sample-detail.scss',
 })
-export class SampleDetail implements OnDestroy {
+export class SampleDetail {
   private svc = inject(LabelService);
   private toast = inject(ToastService);
   private dialog = inject(MatDialog);
   private ref = inject<MatDialogRef<SampleDetail>>(MatDialogRef);
-  private timer?: ReturnType<typeof setTimeout>;
 
   sample = inject<Sample>(MAT_DIALOG_DATA);
-  saving = signal(false);
 
   openZoom(): void {
     this.dialog.open(ImageZoom, {
@@ -48,17 +31,6 @@ export class SampleDetail implements OnDestroy {
 
   imageUrl(): string {
     return this.svc.imageUrl(this.sample.id);
-  }
-
-  setText(value: string): void {
-    this.sample.text = value;
-    if (this.timer) clearTimeout(this.timer);
-    this.timer = setTimeout(() => this.persist(), TEXT_DEBOUNCE_MS);
-  }
-
-  setRating(rating: Rating): void {
-    this.sample.rating = rating;
-    this.persist();
   }
 
   remove(): void {
@@ -76,7 +48,7 @@ export class SampleDetail implements OnDestroy {
         this.svc.deleteSample(this.sample.id).subscribe({
           next: () => {
             this.toast.success('Sample deleted');
-            this.ref.close();
+            this.ref.close(true);
           },
           error: () => this.toast.error('Could not delete the sample.'),
         });
@@ -85,17 +57,5 @@ export class SampleDetail implements OnDestroy {
 
   close(): void {
     this.ref.close();
-  }
-
-  ngOnDestroy(): void {
-    if (this.timer) clearTimeout(this.timer);
-  }
-
-  private persist(): void {
-    this.saving.set(true);
-    this.svc
-      .updateSample(this.sample.id, { text: this.sample.text, rating: this.sample.rating })
-      .pipe(finalize(() => this.saving.set(false)))
-      .subscribe({ error: () => this.toast.error('Could not save the change.') });
   }
 }

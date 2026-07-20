@@ -1,0 +1,163 @@
+:host {
+  display: block;
+}
+
+.review {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}
+
+.center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.empty h2 {
+  margin: 0;
+}
+
+.hint {
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+}
+
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.image {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+.image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.panel {
+  padding: 1rem 1.5rem 1.5rem;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+// Everything in the panel is a centered column, capped so it stays tidy on
+// wide screens but goes full-width (with padding) on phones.
+.panel > * {
+  width: 100%;
+  max-width: 560px;
+}
+
+.progress {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.output {
+  text-align: center;
+}
+.output .label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--mat-sys-on-surface-variant);
+  margin-bottom: 0.25rem;
+}
+
+.output .text {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.actions button {
+  flex: 1 1 0;
+  min-height: 56px;
+  font-size: 1.1rem;
+  border-radius: 12px;
+}
+
+.actions .correct {
+  background: #2e7d32;
+  color: #fff;
+}
+
+.key {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0 0.35rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.fix {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fix-field {
+  width: 100%;
+}
+
+.fix-actions {
+  display: flex;
+  gap: 1rem;
+}
+.fix-actions button {
+  flex: 1 1 0;
+  min-height: 52px;
+  font-size: 1.05rem;
+  border-radius: 12px;
+}
+
+// Phones: hide keyboard-shortcut hints (no physical keyboard) and give the
+// image more breathing room.
+@media (max-width: 600px) {
+  .image {
+    padding: 1rem;
+  }
+  .output .text {
+    font-size: 1.25rem;
+  }
+  .key {
+    display: none;
+  }
+  .actions button,
+  .fix-actions button {
+    min-height: 60px;
+    font-size: 1.15rem;
+  }
+}

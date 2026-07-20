@@ -1,0 +1,54 @@
+<h2 mat-dialog-title>Import &amp; process</h2>
+
+<mat-dialog-content class="import-dialog">
+  @if (mode() === 'select') {
+    <div
+      class="drop"
+      [class.over]="dragOver()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
+    >
+      <p class="hint">Drag &amp; drop PDFs or images here</p>
+      <button mat-stroked-button (click)="fileInput.click()">Choose files</button>
+      <input #fileInput type="file" accept=".pdf,image/*" multiple hidden (change)="onChoose($event)" />
+      @if (files().length) {
+        <p class="chosen">{{ files().length }} file{{ files().length === 1 ? '' : 's' }} selected</p>
+      }
+    </div>
+  } @else {
+    <ul class="queue">
+      @for (j of jobs(); track j.id) {
+        <li class="job">
+          <span class="job-name">{{ j.filename }}</span>
+          <span class="chip" [class]="stateClass(j.state)">{{ j.state }}</span>
+          <span class="job-progress">{{ j.pages_done }}/{{ j.pages_total }} pages</span>
+          <span class="job-lines">{{ j.lines }} lines</span>
+          @if (j.state === 'failed' && j.error) {
+            <span class="job-error">{{ j.error }}</span>
+          }
+        </li>
+      }
+    </ul>
+    @if (allDone()) {
+      <p class="done-msg">Done — new lines added to the review queue.</p>
+    } @else {
+      <p class="hint"><mat-progress-spinner diameter="18" mode="indeterminate" /> Processing…</p>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (mode() === 'select') {
+    <button mat-stroked-button (click)="close()">Cancel</button>
+    <button mat-flat-button color="primary" [disabled]="importing() || !files().length" (click)="process()">
+      @if (importing()) {
+        <mat-progress-spinner diameter="18" mode="indeterminate" />
+      } @else {
+        Process {{ files().length || '' }} file{{ files().length === 1 ? '' : 's' }}
+      }
+    </button>
+  } @else {
+    <button mat-flat-button color="primary" (click)="close()">Done</button>
+  }
+</mat-dialog-actions>

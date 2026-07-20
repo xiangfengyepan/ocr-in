@@ -31,7 +31,7 @@ def test_stats_counts_by_rating(tmp_path: Path):
     store.add_sample(_png_bytes(), "c", "spanish", "correct", "c")
     s = store.stats()
     assert s["total"] == 3
-    assert s["by_rating"] == {"correct": 2, "incorrect": 1}
+    assert s["by_rating"] == {"pending": 0, "correct": 2, "incorrect": 1}
 
 
 def test_add_sample_rejects_unsafe_language(tmp_path: Path):
@@ -54,6 +54,30 @@ def test_list_samples_newest_first(tmp_path: Path):
     assert [r["id"] for r in rows] == [2, 1]
     assert rows[0]["text"] == "two"
     assert rows[0]["rating"] == "incorrect"
+
+
+def test_list_samples_paginates_and_counts(tmp_path: Path):
+    store = SampleStore(tmp_path)
+    for i in range(5):
+        store.add_sample(_png_bytes(), f"row {i}", "english", "pending", None)
+    page1 = store.list_samples(limit=2, offset=0)
+    page2 = store.list_samples(limit=2, offset=2)
+    assert [r["id"] for r in page1] == [5, 4]
+    assert [r["id"] for r in page2] == [3, 2]
+    assert store.count() == 5
+    assert store.count(rating="pending") == 5
+    assert store.count(rating="correct") == 0
+
+
+def test_list_samples_filters_by_query(tmp_path: Path):
+    store = SampleStore(tmp_path)
+    store.add_sample(_png_bytes(), "hello world", "english", "correct", "helo")
+    store.add_sample(_png_bytes(), "goodbye", "english", "incorrect", "gudbye")
+    rows = store.list_samples(q="hello")
+    assert [r["text"] for r in rows] == ["hello world"]
+    assert store.count(q="good") == 1
+    # matches engine_guess too, case-insensitive
+    assert store.count(q="GUD") == 1
 
 
 def test_update_sample_text_and_rating(tmp_path: Path):

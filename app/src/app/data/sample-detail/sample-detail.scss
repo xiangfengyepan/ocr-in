@@ -34,18 +34,31 @@
   transform: scale(0.8);
 }
 .detail .fields {
-  display: flex;
-  gap: 0.6rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem 1rem;
+  margin: 0;
 }
-.detail .fields mat-form-field {
-  flex: 1;
-  min-width: 0;
+.detail .fields dt {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.85rem;
 }
-.detail .saving-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 20px;
+.detail .fields dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.detail .rating-badge {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: capitalize;
+  color: #fff;
+}
+.detail .rating-badge.r-correct { background: #2e7d32; }
+.detail .rating-badge.r-incorrect { background: #c62828; }
+.detail .rating-badge.r-pending { background: #f9a825; }
+.detail .hint {
+  margin: 0;
   color: var(--mat-sys-on-surface-variant);
   font-size: 0.85rem;
 }

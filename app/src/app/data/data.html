@@ -2,11 +2,15 @@
   <div class="head">
     <h2>Labeled data</h2>
     <span class="spacer"></span>
+    <a mat-flat-button color="primary" routerLink="/review" class="fast-review">
+      Fast review — {{ pendingCount() }} unlabeled
+    </a>
     <button mat-stroked-button (click)="reload()" [disabled]="loading()">Refresh</button>
     <button mat-stroked-button (click)="exportLabels()">Export</button>
-    <button mat-stroked-button (click)="fileInput.click()" [disabled]="importing()">Import</button>
-    <input #fileInput type="file" accept=".zip" hidden (change)="onImport($event)" />
-    @if (loading() || importing()) {
+    <button mat-stroked-button (click)="zipInput.click()" [disabled]="importing()">Import labels (.zip)</button>
+    <input #zipInput type="file" accept=".zip" hidden (change)="importZip($event)" />
+    <button mat-flat-button color="primary" (click)="openImport()">Import &amp; process</button>
+    @if (loading()) {
       <mat-progress-spinner diameter="20" mode="indeterminate" />
     }
   </div>
@@ -14,28 +18,55 @@
   <div class="filters">
     <mat-button-toggle-group [value]="filter()" (change)="setFilter($event.value)" hideSingleSelectionIndicator>
       <mat-button-toggle value="all">All</mat-button-toggle>
+      <mat-button-toggle value="pending">Unlabeled</mat-button-toggle>
       <mat-button-toggle value="correct">Correct</mat-button-toggle>
       <mat-button-toggle value="incorrect">Incorrect</mat-button-toggle>
     </mat-button-toggle-group>
 
     <mat-form-field appearance="outline" class="search" subscriptSizing="dynamic">
       <mat-label>Search text</mat-label>
-      <input matInput [value]="query()" (input)="query.set($any($event.target).value)" />
+      <input matInput [value]="query()" (input)="onQuery($any($event.target).value)" />
     </mat-form-field>
 
-    <span class="count">{{ filtered().length }} shown</span>
+    <span class="count">{{ total() }} total</span>
   </div>
 
-  @if (!loading() && filtered().length === 0) {
+  @if (!loading() && samples().length === 0) {
     <p class="muted">No matching samples.</p>
   } @else {
-    <cdk-virtual-scroll-viewport itemSize="60" class="viewport">
-      <button *cdkVirtualFor="let s of filtered()" type="button" class="row"
-        [class.incorrect]="s.rating === 'incorrect'" (click)="openDetail(s)">
-        <img [src]="imageUrl(s.id)" loading="lazy" alt="" />
-        <span class="txt">{{ s.text }}</span>
-        <span class="rating">{{ s.rating }}</span>
-      </button>
-    </cdk-virtual-scroll-viewport>
+    <div class="list">
+      @for (s of samples(); track s.id) {
+        <div
+          class="row"
+          [class.incorrect]="s.rating === 'incorrect'"
+          [class.pending]="s.rating === 'pending'"
+          [class.selected]="selectedId() === s.id"
+          (click)="select(s)"
+          (dblclick)="openDetail(s)"
+        >
+          <img [src]="imageUrl(s.id)" loading="lazy" alt="" />
+          <span class="txt">{{ s.text }}</span>
+          <span class="rating">{{ s.rating }}</span>
+          <button
+            mat-icon-button
+            class="del"
+            aria-label="Delete sample"
+            (click)="deleteRow(s, $event)"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
   }
+
+  <mat-paginator
+    [length]="total()"
+    [pageSize]="pageSize()"
+    [pageIndex]="pageIndex()"
+    [pageSizeOptions]="[10, 25, 50, 100]"
+    (page)="onPage($event)"
+  />
+
+  <p class="hint">Click a row to select, double-click to open.</p>
 </div>

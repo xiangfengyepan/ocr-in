@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.engines import ENGINES
+from api.import_jobs.routes import router as import_router
 from api.labeling.routes import router as labeling_router
 from api.model_catalog import build_catalog
 from api.ocr.routes import router as ocr_router
@@ -20,6 +21,7 @@ app.add_middleware(
 registry = ModelRegistry(settings.models_dir)
 app.include_router(labeling_router)
 app.include_router(ocr_router)
+app.include_router(import_router)
 
 
 @app.get("/health")

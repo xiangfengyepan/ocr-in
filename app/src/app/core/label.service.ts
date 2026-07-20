@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 
 export let API = 'http://localhost:8000';
 
@@ -8,8 +8,9 @@ export function setApiBase(url: string | undefined | null): void {
   if (url) API = url.replace(/\/+$/, '');
 }
 
-export type Rating = 'correct' | 'incorrect';
+export type Rating = 'pending' | 'correct' | 'incorrect';
 export type Kind = 'word' | 'line';
+export type ImportState = 'queued' | 'processing' | 'done' | 'failed';
 export type Mode = 'auto' | 'word' | 'line';
 export type Language = 'auto' | 'english' | 'spanish' | 'catalan' | 'chinese' | 'japanese';
 
@@ -23,6 +24,15 @@ export interface SampleBody {
   rating: Rating; text: string; engine_guess: string | null;
 }
 export interface StatsResponse { total: number; by_rating: Record<string, number>; }
+export interface ImportJob {
+  id: number;
+  filename: string;
+  state: ImportState;
+  pages_total: number;
+  pages_done: number;
+  lines: number;
+  error: string | null;
+}
 export interface Sample {
   id: number; image_path: string; text: string; language: string;
   rating: Rating; engine_guess: string | null; created_at: string;
@@ -56,8 +66,34 @@ export class LabelService {
   stats(): Observable<StatsResponse> {
     return this.http.get<StatsResponse>(`${API}/label/stats`);
   }
-  listSamples(): Observable<Sample[]> {
-    return this.http.get<Sample[]>(`${API}/label/samples`);
+  listSamples(rating?: Rating): Observable<Sample[]> {
+    const q = rating ? `?rating=${rating}&limit=100000` : '';
+    return this.http.get<Sample[]>(`${API}/label/samples${q}`);
+  }
+  pageSamples(opts: {
+    rating?: Rating; q?: string; limit: number; offset: number;
+  }): Observable<Sample[]> {
+    const p = new URLSearchParams({ limit: String(opts.limit), offset: String(opts.offset) });
+    if (opts.rating) p.set('rating', opts.rating);
+    if (opts.q) p.set('q', opts.q);
+    return this.http.get<Sample[]>(`${API}/label/samples?${p.toString()}`);
+  }
+  countSamples(opts: { rating?: Rating; q?: string }): Observable<number> {
+    const p = new URLSearchParams();
+    if (opts.rating) p.set('rating', opts.rating);
+    if (opts.q) p.set('q', opts.q);
+    const qs = p.toString();
+    return this.http
+      .get<{ count: number }>(`${API}/label/samples/count${qs ? '?' + qs : ''}`)
+      .pipe(map((r) => r.count));
+  }
+  importFiles(files: File[]): Observable<{ jobs: ImportJob[] }> {
+    const form = new FormData();
+    for (const f of files) form.append('files', f);
+    return this.http.post<{ jobs: ImportJob[] }>(`${API}/import`, form);
+  }
+  importStatus(): Observable<ImportJob[]> {
+    return this.http.get<ImportJob[]>(`${API}/import/status`);
   }
   imageUrl(id: number): string {
     return `${API}/label/image/${id}`;

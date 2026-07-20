@@ -5,7 +5,7 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-_RATINGS = ("correct", "incorrect")
+_RATINGS = ("pending", "correct", "incorrect")
 _LEGACY_RATINGS = ("partial", "wrong")
 _COLUMNS = ("id", "image_path", "text", "language", "rating", "engine_guess", "created_at")
 
@@ -67,13 +67,39 @@ class SampleStore:
             conn.execute("UPDATE samples SET image_path = ? WHERE id = ?", (rel, sample_id))
         return {"id": sample_id, "image_path": rel}
 
-    def list_samples(self, limit: int = 100, offset: int = 0) -> list[dict]:
+    def _filter(self, rating: str | None, q: str | None) -> tuple[str, list[object]]:
+        where: list[str] = []
+        params: list[object] = []
+        if rating is not None:
+            where.append("rating = ?")
+            params.append(rating)
+        if q:
+            where.append("(LOWER(text) LIKE ? OR LOWER(IFNULL(engine_guess, '')) LIKE ?)")
+            like = f"%{q.lower()}%"
+            params.extend([like, like])
+        clause = (" WHERE " + " AND ".join(where)) if where else ""
+        return clause, params
+
+    def list_samples(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        rating: str | None = None,
+        q: str | None = None,
+    ) -> list[dict]:
+        clause, params = self._filter(rating, q)
         with self._conn() as conn:
             rows = conn.execute(
-                "SELECT * FROM samples ORDER BY id DESC LIMIT ? OFFSET ?",
-                (limit, offset),
+                f"SELECT * FROM samples{clause} ORDER BY id DESC LIMIT ? OFFSET ?",
+                [*params, limit, offset],
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def count(self, rating: str | None = None, q: str | None = None) -> int:
+        clause, params = self._filter(rating, q)
+        with self._conn() as conn:
+            row = conn.execute(f"SELECT COUNT(*) FROM samples{clause}", params).fetchone()
+        return int(row[0])
 
     def get_sample(self, sample_id: int) -> dict | None:
         with self._conn() as conn:

@@ -121,9 +121,23 @@ def sample(req: SampleRequest) -> SampleResponse:
     return SampleResponse(**result)
 
 
+def _check_rating(rating: str | None) -> None:
+    if rating is not None and rating not in ("pending", "correct", "incorrect"):
+        raise HTTPException(status_code=400, detail=f"invalid rating: {rating!r}")
+
+
 @router.get("/samples")
-def samples(limit: int = 100, offset: int = 0) -> list[dict]:
-    return store.list_samples(limit, offset)
+def samples(
+    limit: int = 100, offset: int = 0, rating: str | None = None, q: str | None = None
+) -> list[dict]:
+    _check_rating(rating)
+    return store.list_samples(limit, offset, rating=rating, q=q)
+
+
+@router.get("/samples/count")
+def samples_count(rating: str | None = None, q: str | None = None) -> dict:
+    _check_rating(rating)
+    return {"count": store.count(rating=rating, q=q)}
 
 
 @router.get("/image/{sample_id}")
