@@ -10,6 +10,8 @@ from PIL import Image
 from pydantic import BaseModel
 
 from api.inference.crnn_recognizer import crop_to_ink, get_recognizer
+from api.inference.kind_detector import detect_kind
+from api.inference.trocr_recognizer import get_trocr_recognizer
 from api.labeling.store import SampleStore
 from api.util import settings
 
@@ -17,6 +19,8 @@ router = APIRouter(prefix="/label", tags=["labeling"])
 store = SampleStore(settings.collected_dir)
 
 Rating = Literal["correct", "incorrect"]
+Kind = Literal["word", "line"]
+Mode = Literal["auto", "word", "line"]
 
 
 def _decode_png(image: str) -> bytes:
@@ -27,11 +31,14 @@ def _decode_png(image: str) -> bytes:
 
 class GuessRequest(BaseModel):
     image: str
+    mode: Mode = "auto"
 
 
 class GuessResponse(BaseModel):
     guess: str
     confidence: float
+    kind: Kind
+    engine: str
 
 
 class SampleRequest(BaseModel):
@@ -53,12 +60,20 @@ class UpdateRequest(BaseModel):
 
 @router.post("/guess", response_model=GuessResponse)
 def guess(req: GuessRequest) -> GuessResponse:
-    recognizer = get_recognizer()
-    if recognizer is None:
-        raise HTTPException(status_code=503, detail="crnn/english checkpoint not available")
     image = Image.open(io.BytesIO(_decode_png(req.image)))
+    kind: Kind = detect_kind(image) if req.mode == "auto" else req.mode
+    if kind == "line":
+        recognizer = get_trocr_recognizer()
+        engine = "trocr"
+    else:
+        recognizer = get_recognizer()
+        engine = "crnn"
+    if recognizer is None:
+        raise HTTPException(status_code=503, detail=f"{engine} model not available")
     result = recognizer.recognize(image)
-    return GuessResponse(guess=result["text"], confidence=result["confidence"])
+    return GuessResponse(
+        guess=result["text"], confidence=result["confidence"], kind=kind, engine=engine
+    )
 
 
 @router.post("/sample", response_model=SampleResponse)

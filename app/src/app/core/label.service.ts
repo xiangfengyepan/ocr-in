@@ -5,8 +5,10 @@ import { Observable } from 'rxjs';
 export const API = 'http://localhost:8000';
 
 export type Rating = 'correct' | 'incorrect';
+export type Kind = 'word' | 'line';
+export type Mode = 'auto' | 'word' | 'line';
 
-export interface GuessResponse { guess: string; confidence: number; }
+export interface GuessResponse { guess: string; confidence: number; kind: Kind; engine: string; }
 export interface SampleBody {
   image: string;
   rating: Rating; text: string; engine_guess: string | null;
@@ -27,8 +29,8 @@ export interface ModelInfo {
 export class LabelService {
   private http = inject(HttpClient);
 
-  guess(image: string): Observable<GuessResponse> {
-    return this.http.post<GuessResponse>(`${API}/label/guess`, { image });
+  guess(image: string, mode: Mode = 'auto'): Observable<GuessResponse> {
+    return this.http.post<GuessResponse>(`${API}/label/guess`, { image, mode });
   }
   sample(body: SampleBody): Observable<{ id: number; image_path: string }> {
     return this.http.post<{ id: number; image_path: string }>(`${API}/label/sample`, body);

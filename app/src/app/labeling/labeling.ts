@@ -7,7 +7,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { LabelService } from '../core/label.service';
+import { Kind, LabelService, Mode } from '../core/label.service';
 import { ToastService } from '../shared/toast.service';
 
 type Rating = 'correct' | 'incorrect';
@@ -40,6 +40,9 @@ export class Labeling implements AfterViewInit {
   total = signal(0);
   guessing = signal(false);
   saving = signal(false);
+  mode = signal<Mode>('auto');
+  detectedKind = signal<Kind | null>(null);
+  engine = signal<string | null>(null);
 
   ngAfterViewInit(): void {
     const ctx = this.canvasRef().nativeElement.getContext('2d');
@@ -77,24 +80,32 @@ export class Labeling implements AfterViewInit {
     this.guess.set(null);
     this.rating.set(null);
     this.text.set('');
+    this.detectedKind.set(null);
+    this.engine.set(null);
   }
 
   private png(): string { return this.canvasRef().nativeElement.toDataURL('image/png'); }
 
+  setMode(m: Mode): void {
+    this.mode.set(m);
+  }
+
   doGuess(): void {
     this.guessing.set(true);
     this.svc
-      .guess(this.png())
+      .guess(this.png(), this.mode())
       .pipe(finalize(() => this.guessing.set(false)))
       .subscribe({
         next: (r) => {
           this.guess.set(r.guess);
           this.confidence.set(r.confidence);
           this.text.set(r.guess);
+          this.detectedKind.set(r.kind);
+          this.engine.set(r.engine);
           this.rating.set(null);
         },
         error: () =>
-          this.toast.error('Guess failed — check the API is running and a CRNN model is available.'),
+          this.toast.error('Guess failed — check the API is running and the model is available.'),
       });
   }
 

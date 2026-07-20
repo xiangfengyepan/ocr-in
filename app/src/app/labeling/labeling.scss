@@ -23,8 +23,16 @@ canvas {
 .actions {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
   margin: 0.75rem 0;
 }
+
+.result .detected {
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+}
+.result .detected .hint { font-size: 0.85rem; }
 
 .result {
   display: flex;
