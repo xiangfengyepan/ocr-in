@@ -29,6 +29,9 @@ export interface ModelInfo {
 export class LabelService {
   private http = inject(HttpClient);
 
+  detect(image: string): Observable<{ kind: Kind }> {
+    return this.http.post<{ kind: Kind }>(`${API}/label/detect`, { image });
+  }
   guess(image: string, mode: Mode = 'auto'): Observable<GuessResponse> {
     return this.http.post<GuessResponse>(`${API}/label/guess`, { image, mode });
   }

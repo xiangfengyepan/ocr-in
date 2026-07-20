@@ -29,6 +29,14 @@ def _decode_png(image: str) -> bytes:
     return base64.b64decode(image)
 
 
+class DetectRequest(BaseModel):
+    image: str
+
+
+class DetectResponse(BaseModel):
+    kind: Kind
+
+
 class GuessRequest(BaseModel):
     image: str
     mode: Mode = "auto"
@@ -56,6 +64,12 @@ class SampleResponse(BaseModel):
 class UpdateRequest(BaseModel):
     text: str | None = None
     rating: Rating | None = None
+
+
+@router.post("/detect", response_model=DetectResponse)
+def detect(req: DetectRequest) -> DetectResponse:
+    image = Image.open(io.BytesIO(_decode_png(req.image)))
+    return DetectResponse(kind=detect_kind(image))
 
 
 @router.post("/guess", response_model=GuessResponse)

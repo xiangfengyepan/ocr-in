@@ -16,11 +16,18 @@
       (pointerleave)="onPointerUp()"></canvas>
 
     <div class="actions">
-      <mat-button-toggle-group [value]="mode()" (change)="setMode($event.value)" hideSingleSelectionIndicator>
-        <mat-button-toggle value="auto">Auto</mat-button-toggle>
+      <mat-button-toggle-group class="kind" [value]="mode()" (change)="setMode($event.value)"
+        [disabled]="detecting()" hideSingleSelectionIndicator>
         <mat-button-toggle value="word">Word</mat-button-toggle>
         <mat-button-toggle value="line">Line</mat-button-toggle>
       </mat-button-toggle-group>
+      @if (detecting()) {
+        <mat-progress-spinner diameter="18" mode="indeterminate" />
+        <span class="hint">detecting…</span>
+      } @else {
+        <span class="hint">auto-detected — change before Guess if wrong</span>
+      }
+      <span class="spacer"></span>
       <button mat-stroked-button (click)="clear()">Clear</button>
       <button mat-flat-button color="primary" (click)="doGuess()" [disabled]="guessing()">
         @if (guessing()) {
@@ -33,13 +40,10 @@
 
     @if (guess() !== null) {
       <div class="result">
-        @if (detectedKind()) {
-          <p class="detected">
-            Detected: <strong>{{ detectedKind() }}</strong> — read by <strong>{{ engine() }}</strong>
-            @if (mode() === 'auto') { <span class="hint">(auto; change with the toggle and re-Guess)</span> }
-          </p>
-        }
-        <p>Guess: <strong>{{ guess() }}</strong> <em>({{ confidence() | number: '1.2-2' }})</em></p>
+        <p>
+          Guess: <strong>{{ guess() }}</strong> <em>({{ confidence() | number: '1.2-2' }})</em>
+          @if (engine()) { <span class="hint">· read by {{ engine() }}</span> }
+        </p>
         <mat-button-toggle-group class="rating-toggle" [value]="rating()" (change)="rate($event.value)" hideSingleSelectionIndicator>
           <mat-button-toggle class="toggle-correct" value="correct">Correct</mat-button-toggle>
           <mat-button-toggle class="toggle-incorrect" value="incorrect">Incorrect</mat-button-toggle>

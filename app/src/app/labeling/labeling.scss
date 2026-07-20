@@ -27,12 +27,12 @@ canvas {
   flex-wrap: wrap;
   margin: 0.75rem 0;
 }
+.actions .spacer { flex: 1; }
 
-.result .detected {
+.hint {
   color: var(--mat-sys-on-surface-variant);
-  margin: 0;
+  font-size: 0.85rem;
 }
-.result .detected .hint { font-size: 0.85rem; }
 
 .result {
   display: flex;
