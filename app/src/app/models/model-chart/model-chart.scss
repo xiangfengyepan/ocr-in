@@ -1,0 +1,52 @@
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.legend .key {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding-left: 1.2rem;
+  position: relative;
+}
+.legend .key::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.35em;
+  width: 0.9rem;
+  height: 3px;
+  border-radius: 2px;
+}
+.legend .cer::before { background: #c62828; }
+.legend .wer::before { background: #1565c0; }
+.hint { color: var(--mat-sys-on-surface-variant); font-size: 0.8rem; }
+
+.chart { width: 100%; height: auto; }
+.chart .axis { stroke: var(--mat-sys-outline); stroke-width: 1; }
+.chart .grid { stroke: var(--mat-sys-outline-variant); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart .tick { fill: var(--mat-sys-on-surface-variant); font-size: 10px; }
+.chart .line { fill: none; stroke-width: 2; }
+.chart .line.cer { stroke: #c62828; }
+.chart .line.wer { stroke: #1565c0; }
+
+.legend, .chart { margin-top: 0.75rem; }
+.pad { padding-top: 1rem; }
+
+.labeling { padding-top: 0.75rem; }
+.labeling .total { font-weight: 600; margin: 0 0 0.6rem; }
+.labeling .bar {
+  display: flex;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--mat-sys-surface-container-highest);
+}
+.labeling .seg.correct { background: #2e7d32; }
+.labeling .seg.incorrect { background: #c62828; }
+.labeling .counts { list-style: none; padding: 0; margin: 0.6rem 0; }
+.labeling .counts li { display: flex; align-items: center; gap: 0.5rem; padding: 0.15rem 0; }
+.labeling .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.labeling .dot.correct { background: #2e7d32; }
+.labeling .dot.incorrect { background: #c62828; }

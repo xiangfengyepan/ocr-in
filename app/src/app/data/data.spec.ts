@@ -1,34 +1,58 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { of } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
 import { Data } from './data';
-import { API } from '../core/label.service';
+import { API, Sample } from '../core/label.service';
+
+const ROWS: Sample[] = [
+  { id: 1, image_path: 'english/1.png', text: 'hello', language: 'english', rating: 'correct', engine_guess: 'helo', created_at: '' },
+  { id: 2, image_path: 'english/2.png', text: 'world', language: 'english', rating: 'incorrect', engine_guess: 'wrld', created_at: '' },
+];
+
+function setup(dialogStub?: unknown) {
+  TestBed.configureTestingModule({
+    imports: [Data],
+    providers: [
+      provideHttpClient(),
+      provideHttpClientTesting(),
+      ...(dialogStub ? [{ provide: MatDialog, useValue: dialogStub }] : []),
+    ],
+  });
+  const fixture = TestBed.createComponent(Data);
+  fixture.detectChanges();
+  const http = TestBed.inject(HttpTestingController);
+  http.expectOne(`${API}/label/samples`).flush(ROWS);
+  fixture.detectChanges();
+  return { fixture, http };
+}
 
 describe('Data', () => {
-  it('loads samples and renders an editable row', async () => {
-    await TestBed.configureTestingModule({
-      imports: [Data],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(Data);
-    fixture.detectChanges(); // ngOnInit -> GET /label/samples
-
-    const httpMock = TestBed.inject(HttpTestingController);
-    const req = httpMock.expectOne(`${API}/label/samples`);
-    expect(req.request.method).toBe('GET');
-    req.flush([
-      {
-        id: 1, image_path: 'english/1.png', text: 'hi', language: 'english',
-        rating: 'correct', engine_guess: 'hi', created_at: '',
-      },
-    ]);
-    fixture.detectChanges();
-
+  it('renders a clickable compact cell per sample', () => {
+    const { fixture, http } = setup();
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.textContent).toContain('Labeled data');
-    expect(el.querySelector('input')).toBeTruthy();
-    expect(el.querySelector('img')).toBeTruthy();
-    httpMock.verify();
+    expect(el.querySelectorAll('.cell').length).toBe(2);
+    expect(el.textContent).toContain('hello');
+    http.verify();
+  });
+
+  it('filters by rating and by text', () => {
+    const { fixture, http } = setup();
+    const c = fixture.componentInstance;
+    c.setFilter('incorrect');
+    expect(c.filtered().map((s) => s.id)).toEqual([2]);
+    c.setFilter('all');
+    c.query.set('hell');
+    expect(c.filtered().map((s) => s.id)).toEqual([1]);
+    http.verify();
+  });
+
+  it('opens the detail dialog and reloads when it closes', () => {
+    const dialog = { open: () => ({ afterClosed: () => of(true) }) };
+    const { fixture, http } = setup(dialog);
+    fixture.componentInstance.openDetail(ROWS[0]);
+    http.expectOne(`${API}/label/samples`).flush(ROWS); // reload after close
+    http.verify();
   });
 });

@@ -5,10 +5,15 @@ import { Observable } from 'rxjs';
 export const API = 'http://localhost:8000';
 
 export type Rating = 'correct' | 'incorrect';
+export type Kind = 'word' | 'line';
+export type Mode = 'auto' | 'word' | 'line';
+export type Language = 'auto' | 'english' | 'spanish' | 'catalan' | 'chinese' | 'japanese';
 
-export interface GuessResponse { guess: string; confidence: number; }
+export interface CorrectResponse { corrected: string; language: string; }
+
+export interface GuessResponse { guess: string; confidence: number; kind: Kind; engine: string; }
 export interface SampleBody {
-  image: string; language: string;
+  image: string;
   rating: Rating; text: string; engine_guess: string | null;
 }
 export interface StatsResponse { total: number; by_rating: Record<string, number>; }
@@ -16,13 +21,28 @@ export interface Sample {
   id: number; image_path: string; text: string; language: string;
   rating: Rating; engine_guess: string | null; created_at: string;
 }
+export interface Metric { cer: number; wer: number; }
+export interface EpochStat { epoch: number; cer: number; wer: number; }
+export interface ModelInfo {
+  id: string; name: string; detail: string; engine: string;
+  available: boolean; source: string; best_for: 'words' | 'lines' | null;
+  metrics: { words: Metric | null; lines: Metric | null };
+  meta: { epoch?: number; cer?: number; wer?: number } | null;
+  history: EpochStat[] | null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class LabelService {
   private http = inject(HttpClient);
 
-  guess(image: string, language: string): Observable<GuessResponse> {
-    return this.http.post<GuessResponse>(`${API}/label/guess`, { image, language });
+  detect(image: string): Observable<{ kind: Kind }> {
+    return this.http.post<{ kind: Kind }>(`${API}/label/detect`, { image });
+  }
+  guess(image: string, mode: Mode = 'auto'): Observable<GuessResponse> {
+    return this.http.post<GuessResponse>(`${API}/label/guess`, { image, mode });
+  }
+  correct(text: string, language: Language, kind: Kind): Observable<CorrectResponse> {
+    return this.http.post<CorrectResponse>(`${API}/label/correct`, { text, language, kind });
   }
   sample(body: SampleBody): Observable<{ id: number; image_path: string }> {
     return this.http.post<{ id: number; image_path: string }>(`${API}/label/sample`, body);
@@ -41,5 +61,8 @@ export class LabelService {
   }
   deleteSample(id: number): Observable<{ deleted: number }> {
     return this.http.delete<{ deleted: number }>(`${API}/label/sample/${id}`);
+  }
+  models(): Observable<ModelInfo[]> {
+    return this.http.get<ModelInfo[]>(`${API}/models`);
   }
 }

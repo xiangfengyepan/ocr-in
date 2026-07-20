@@ -48,3 +48,15 @@ def test_ocrresult_shape():
     r = OcrResult(text="hi", bbox=(0.0, 0.0, 1.0, 1.0), confidence=0.9)
     assert r.text == "hi"
     assert len(r.bbox) == 4
+
+
+def test_models_endpoint():
+    from fastapi.testclient import TestClient
+
+    from api import main
+
+    rows = TestClient(main.app).get("/models").json()
+    assert any(m["id"] == "crnn-words" and m["best_for"] == "words" for m in rows)
+    assert any(m["id"] == "trocr-stock" and m["best_for"] == "lines" for m in rows)
+    for m in rows:
+        assert "metrics" in m and "name" in m

@@ -9,7 +9,10 @@ from fastapi.responses import FileResponse
 from PIL import Image
 from pydantic import BaseModel
 
+from api.inference.corrector import correct as correct_text
 from api.inference.crnn_recognizer import crop_to_ink, get_recognizer
+from api.inference.kind_detector import detect_kind
+from api.inference.trocr_recognizer import get_trocr_recognizer
 from api.labeling.store import SampleStore
 from api.util import settings
 
@@ -17,6 +20,9 @@ router = APIRouter(prefix="/label", tags=["labeling"])
 store = SampleStore(settings.collected_dir)
 
 Rating = Literal["correct", "incorrect"]
+Kind = Literal["word", "line"]
+Mode = Literal["auto", "word", "line"]
+Language = Literal["auto", "english", "spanish", "catalan", "chinese", "japanese"]
 
 
 def _decode_png(image: str) -> bytes:
@@ -25,19 +31,39 @@ def _decode_png(image: str) -> bytes:
     return base64.b64decode(image)
 
 
+class DetectRequest(BaseModel):
+    image: str
+
+
+class DetectResponse(BaseModel):
+    kind: Kind
+
+
 class GuessRequest(BaseModel):
     image: str
-    language: str
+    mode: Mode = "auto"
 
 
 class GuessResponse(BaseModel):
     guess: str
     confidence: float
+    kind: Kind
+    engine: str
+
+
+class CorrectRequest(BaseModel):
+    text: str
+    language: Language = "auto"
+    kind: Kind = "word"
+
+
+class CorrectResponse(BaseModel):
+    corrected: str
+    language: str
 
 
 class SampleRequest(BaseModel):
     image: str
-    language: str
     rating: Rating
     text: str
     engine_guess: str | None = None
@@ -53,14 +79,34 @@ class UpdateRequest(BaseModel):
     rating: Rating | None = None
 
 
+@router.post("/detect", response_model=DetectResponse)
+def detect(req: DetectRequest) -> DetectResponse:
+    image = Image.open(io.BytesIO(_decode_png(req.image)))
+    return DetectResponse(kind=detect_kind(image))
+
+
+@router.post("/correct", response_model=CorrectResponse)
+def correct(req: CorrectRequest) -> CorrectResponse:
+    corrected, language = correct_text(req.text, req.language, req.kind)
+    return CorrectResponse(corrected=corrected, language=language)
+
+
 @router.post("/guess", response_model=GuessResponse)
 def guess(req: GuessRequest) -> GuessResponse:
-    recognizer = get_recognizer()
-    if recognizer is None:
-        raise HTTPException(status_code=503, detail="crnn/english checkpoint not available")
     image = Image.open(io.BytesIO(_decode_png(req.image)))
+    kind: Kind = detect_kind(image) if req.mode == "auto" else req.mode
+    if kind == "line":
+        recognizer = get_trocr_recognizer()
+        engine = "trocr"
+    else:
+        recognizer = get_recognizer()
+        engine = "crnn"
+    if recognizer is None:
+        raise HTTPException(status_code=503, detail=f"{engine} model not available")
     result = recognizer.recognize(image)
-    return GuessResponse(guess=result["text"], confidence=result["confidence"])
+    return GuessResponse(
+        guess=result["text"], confidence=result["confidence"], kind=kind, engine=engine
+    )
 
 
 @router.post("/sample", response_model=SampleResponse)
@@ -69,12 +115,7 @@ def sample(req: SampleRequest) -> SampleResponse:
     cropped = crop_to_ink(image)
     buf = io.BytesIO()
     cropped.save(buf, format="PNG")
-    try:
-        result = store.add_sample(
-            buf.getvalue(), req.text, req.language, req.rating, req.engine_guess
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    result = store.add_sample(buf.getvalue(), req.text, "english", req.rating, req.engine_guess)
     return SampleResponse(**result)
 
 

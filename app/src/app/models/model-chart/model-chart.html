@@ -1,0 +1,57 @@
+<h2 mat-dialog-title>{{ data.name }}</h2>
+<mat-dialog-content>
+  <mat-tab-group>
+    <mat-tab label="Training curve">
+      @if (history.length) {
+        <div class="legend">
+          <span class="key cer">CER</span>
+          <span class="key wer">WER</span>
+          <span class="hint">validation, per epoch (lower is better)</span>
+        </div>
+        <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" class="chart" role="img"
+          [attr.aria-label]="data.name + ' training curve'">
+          <line [attr.x1]="pad" [attr.y1]="pad" [attr.x2]="pad" [attr.y2]="axisY" class="axis" />
+          <line [attr.x1]="pad" [attr.y1]="axisY" [attr.x2]="W - pad" [attr.y2]="axisY" class="axis" />
+          @for (t of yTicks(); track t.v) {
+            <line [attr.x1]="pad - 4" [attr.y1]="t.y" [attr.x2]="W - pad" [attr.y2]="t.y" class="grid" />
+            <text [attr.x]="pad - 8" [attr.y]="t.y + 3" class="tick" text-anchor="end">{{ (t.v * 100).toFixed(0) }}%</text>
+          }
+          <text [attr.x]="pad" [attr.y]="axisY + 16" class="tick" text-anchor="start">1</text>
+          <text [attr.x]="W - pad" [attr.y]="axisY + 16" class="tick" text-anchor="end">{{ lastEpoch }}</text>
+          <text [attr.x]="W / 2" [attr.y]="axisY + 30" class="tick" text-anchor="middle">epoch</text>
+          <polyline [attr.points]="points('cer')" class="line cer" />
+          <polyline [attr.points]="points('wer')" class="line wer" />
+        </svg>
+        @if (data.meta?.epoch) {
+          <p class="hint">Best: epoch {{ data.meta?.epoch }} · CER {{ ((data.meta?.cer ?? 0) * 100).toFixed(1) }}%</p>
+        }
+      } @else {
+        <p class="hint pad">No training history for this model (not trained here — pretrained/baseline).</p>
+      }
+    </mat-tab>
+
+    <mat-tab label="Labeling">
+      @if (stats(); as s) {
+        <div class="labeling">
+          <p class="total">{{ s.total }} sample{{ s.total === 1 ? '' : 's' }} collected via the Labeling tab</p>
+          @if (s.total) {
+            <div class="bar">
+              <span class="seg correct" [style.width.%]="ratingPct(s, 'correct')"></span>
+              <span class="seg incorrect" [style.width.%]="ratingPct(s, 'incorrect')"></span>
+            </div>
+            <ul class="counts">
+              <li><span class="dot correct"></span> Correct: {{ s.by_rating['correct'] || 0 }} ({{ ratingPct(s, 'correct').toFixed(0) }}%)</li>
+              <li><span class="dot incorrect"></span> Incorrect: {{ s.by_rating['incorrect'] || 0 }} ({{ ratingPct(s, 'incorrect').toFixed(0) }}%)</li>
+            </ul>
+          }
+          <p class="hint">Data collected via the Labeling tab — the pool for future retraining (active learning).</p>
+        </div>
+      } @else {
+        <p class="hint pad">Loading…</p>
+      }
+    </mat-tab>
+  </mat-tab-group>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-flat-button (click)="close()">Close</button>
+</mat-dialog-actions>

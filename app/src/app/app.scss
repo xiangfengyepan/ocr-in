@@ -1,4 +1,28 @@
-.tabs { display: flex; gap: 0.5rem; padding: 0.75rem 1rem; border-bottom: 1px solid #ddd; }
-.tabs a { padding: 0.4rem 0.9rem; text-decoration: none; color: #333; border-radius: 6px; }
-.tabs a.active { background: #1976d2; color: #fff; }
-main { padding: 1rem; }
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.topbar .title {
+  font-weight: 600;
+  margin-right: 1.5rem;
+}
+
+.topbar .tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.topbar .tabs a {
+  color: var(--mat-sys-on-primary);
+  opacity: 0.85;
+}
+
+.topbar .tabs a.active {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.18);
+}

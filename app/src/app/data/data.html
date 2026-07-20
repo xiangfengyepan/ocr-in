@@ -1,30 +1,37 @@
-<section class="data">
+<div class="data">
   <div class="head">
     <h2>Labeled data</h2>
-    <button (click)="reload()">Refresh</button>
+    <span class="spacer"></span>
+    <button mat-stroked-button (click)="reload()" [disabled]="loading()">Refresh</button>
   </div>
 
-  @if (samples().length === 0) {
-    <p class="muted">No labeled samples yet. Draw and save some on the Labeling tab.</p>
+  <div class="filters">
+    <mat-button-toggle-group [value]="filter()" (change)="setFilter($event.value)" hideSingleSelectionIndicator>
+      <mat-button-toggle value="all">All</mat-button-toggle>
+      <mat-button-toggle value="correct">Correct</mat-button-toggle>
+      <mat-button-toggle value="incorrect">Incorrect</mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <mat-form-field appearance="outline" class="search" subscriptSizing="dynamic">
+      <mat-label>Search text</mat-label>
+      <input matInput [value]="query()" (input)="query.set($any($event.target).value)" />
+    </mat-form-field>
+
+    @if (loading()) {
+      <mat-progress-spinner diameter="20" mode="indeterminate" />
+    }
+  </div>
+
+  @if (!loading() && filtered().length === 0) {
+    <p class="muted">No matching samples.</p>
   }
 
   <div class="grid">
-    @for (s of samples(); track s.id) {
-      <div class="card">
+    @for (s of filtered(); track s.id) {
+      <button type="button" class="cell" [class.incorrect]="s.rating === 'incorrect'" (click)="openDetail(s)">
         <img [src]="imageUrl(s.id)" [alt]="'sample ' + s.id" />
-        <input [value]="s.text" (input)="setText(s, $any($event.target).value)" />
-        <div class="row">
-          <div class="ratings">
-            <button [class.sel]="s.rating === 'correct'" (click)="setRating(s, 'correct')">Correct</button>
-            <button [class.sel]="s.rating === 'incorrect'" (click)="setRating(s, 'incorrect')">Incorrect</button>
-          </div>
-          <span class="lang">{{ s.language }}</span>
-        </div>
-        <div class="row">
-          <button class="save" (click)="save(s)">Save</button>
-          <button class="del" (click)="remove(s)">Delete</button>
-        </div>
-      </div>
+        <span class="txt">{{ s.text }}</span>
+      </button>
     }
   </div>
-</section>
+</div>
