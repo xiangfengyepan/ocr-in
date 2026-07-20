@@ -6,6 +6,14 @@
 
   <mat-card-content>
     <div class="controls">
+      <mat-form-field appearance="outline" class="lang" subscriptSizing="dynamic">
+        <mat-label>Language</mat-label>
+        <mat-select [value]="language()" (selectionChange)="setLanguage($event.value)">
+          @for (l of languages; track l) {
+            <mat-option [value]="l">{{ l }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
       <span class="count">Saved: {{ total() }}</span>
     </div>
 
@@ -40,10 +48,18 @@
 
     @if (guess() !== null) {
       <div class="result">
-        <p>
-          Guess: <strong>{{ guess() }}</strong> <em>({{ confidence() | number: '1.2-2' }})</em>
+        <p class="ocr">
+          OCR: <strong>{{ guess() }}</strong> <em>({{ confidence() | number: '1.2-2' }})</em>
           @if (engine()) { <span class="hint">· read by {{ engine() }}</span> }
         </p>
+        @if (correcting()) {
+          <p class="hint"><mat-progress-spinner diameter="16" mode="indeterminate" /> correcting…</p>
+        } @else if (corrected() !== null) {
+          <p class="corrected">
+            Corrected@if (detectedLang()) { <span class="hint">({{ detectedLang() }})</span> }:
+            <strong>{{ corrected() }}</strong>
+          </p>
+        }
         <mat-button-toggle-group class="rating-toggle" [value]="rating()" (change)="rate($event.value)" hideSingleSelectionIndicator>
           <mat-button-toggle class="toggle-correct" value="correct">Correct</mat-button-toggle>
           <mat-button-toggle class="toggle-incorrect" value="incorrect">Incorrect</mat-button-toggle>

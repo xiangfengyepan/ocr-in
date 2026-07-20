@@ -15,7 +15,8 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Kind, LabelService } from '../core/label.service';
+import { MatSelectModule } from '@angular/material/select';
+import { Kind, Language, LabelService } from '../core/label.service';
 import { ToastService } from '../shared/toast.service';
 
 type Rating = 'correct' | 'incorrect';
@@ -32,6 +33,7 @@ const DETECT_DEBOUNCE_MS = 400;
     MatFormFieldModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
   ],
   templateUrl: './labeling.html',
   styleUrl: './labeling.scss',
@@ -54,6 +56,11 @@ export class Labeling implements AfterViewInit, OnDestroy {
   mode = signal<Kind>('word');
   detecting = signal(false);
   engine = signal<string | null>(null);
+  readonly languages: Language[] = ['auto', 'english', 'spanish', 'catalan', 'chinese', 'japanese'];
+  language = signal<Language>('auto');
+  corrected = signal<string | null>(null);
+  correcting = signal(false);
+  detectedLang = signal<string | null>(null);
 
   ngAfterViewInit(): void {
     const ctx = this.canvasRef().nativeElement.getContext('2d');
@@ -102,6 +109,12 @@ export class Labeling implements AfterViewInit, OnDestroy {
     this.rating.set(null);
     this.text.set('');
     this.engine.set(null);
+    this.corrected.set(null);
+    this.detectedLang.set(null);
+  }
+
+  setLanguage(l: Language): void {
+    this.language.set(l);
   }
 
   private png(): string { return this.canvasRef().nativeElement.toDataURL('image/png'); }
@@ -133,15 +146,32 @@ export class Labeling implements AfterViewInit, OnDestroy {
           this.text.set(r.guess);
           this.engine.set(r.engine);
           this.rating.set(null);
+          this.correctStep(r.guess);
         },
         error: () =>
           this.toast.error('Guess failed — check the API is running and the model is available.'),
       });
   }
 
+  private correctStep(raw: string): void {
+    this.correcting.set(true);
+    this.corrected.set(null);
+    this.svc
+      .correct(raw, this.language(), this.mode())
+      .pipe(finalize(() => this.correcting.set(false)))
+      .subscribe({
+        next: (c) => {
+          this.corrected.set(c.corrected);
+          this.detectedLang.set(c.language);
+          this.text.set(c.corrected);
+        },
+        error: () => this.toast.error('Correction failed — keeping the raw OCR text.'),
+      });
+  }
+
   rate(r: Rating): void {
     this.rating.set(r);
-    if (r === 'correct') this.text.set(this.guess() ?? '');
+    if (r === 'correct') this.text.set(this.corrected() ?? this.guess() ?? '');
   }
 
   save(): void {

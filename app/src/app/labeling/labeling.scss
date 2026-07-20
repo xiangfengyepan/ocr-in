@@ -6,8 +6,13 @@
   align-items: center;
   gap: 1rem;
 }
-.controls .lang { width: 220px; }
+.controls { gap: 1rem; }
+.controls .lang { width: 200px; }
 .controls .count { color: var(--mat-sys-on-surface-variant); }
+
+.result .ocr { margin: 0; color: var(--mat-sys-on-surface-variant); }
+.result .corrected { margin: 0; }
+.result .hint mat-progress-spinner { display: inline-block; vertical-align: middle; margin-right: 0.4rem; }
 
 canvas {
   display: block;

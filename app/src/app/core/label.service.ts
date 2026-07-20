@@ -7,6 +7,9 @@ export const API = 'http://localhost:8000';
 export type Rating = 'correct' | 'incorrect';
 export type Kind = 'word' | 'line';
 export type Mode = 'auto' | 'word' | 'line';
+export type Language = 'auto' | 'english' | 'spanish' | 'catalan' | 'chinese' | 'japanese';
+
+export interface CorrectResponse { corrected: string; language: string; }
 
 export interface GuessResponse { guess: string; confidence: number; kind: Kind; engine: string; }
 export interface SampleBody {
@@ -34,6 +37,9 @@ export class LabelService {
   }
   guess(image: string, mode: Mode = 'auto'): Observable<GuessResponse> {
     return this.http.post<GuessResponse>(`${API}/label/guess`, { image, mode });
+  }
+  correct(text: string, language: Language, kind: Kind): Observable<CorrectResponse> {
+    return this.http.post<CorrectResponse>(`${API}/label/correct`, { text, language, kind });
   }
   sample(body: SampleBody): Observable<{ id: number; image_path: string }> {
     return this.http.post<{ id: number; image_path: string }>(`${API}/label/sample`, body);
