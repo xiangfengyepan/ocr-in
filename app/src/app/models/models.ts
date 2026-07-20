@@ -1,12 +1,14 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { LabelService, ModelInfo } from '../core/label.service';
 import { ModelChart } from './model-chart/model-chart';
 
 @Component({
   selector: 'app-models',
-  imports: [MatCardModule],
+  imports: [MatCardModule, MatButtonModule, MatTooltipModule],
   templateUrl: './models.html',
   styleUrl: './models.scss',
 })

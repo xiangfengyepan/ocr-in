@@ -1,5 +1,7 @@
 .models { max-width: 920px; }
 .scroll { overflow-x: auto; }
+mat-card-header { align-items: center; }
+.header-spacer { flex: 1; }
 
 .tbl {
   width: 100%;

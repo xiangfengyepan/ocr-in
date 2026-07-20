@@ -29,11 +29,13 @@ function setup(dialogStub?: unknown) {
 }
 
 describe('Data', () => {
-  it('renders a clickable compact cell per sample', () => {
+  it('loads samples and renders the header/filters', () => {
     const { fixture, http } = setup();
+    expect(fixture.componentInstance.samples().length).toBe(2);
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelectorAll('.cell').length).toBe(2);
-    expect(el.textContent).toContain('hello');
+    expect(el.textContent).toContain('Labeled data');
+    expect(el.textContent).toContain('shown');
+    expect(el.querySelector('.viewport')).toBeTruthy();
     http.verify();
   });
 
@@ -45,6 +47,17 @@ describe('Data', () => {
     c.setFilter('all');
     c.query.set('hell');
     expect(c.filtered().map((s) => s.id)).toEqual([1]);
+    http.verify();
+  });
+
+  it('imports labels and reloads', () => {
+    const { fixture, http } = setup();
+    const file = new File(['x'], 'labels.zip', { type: 'application/zip' });
+    fixture.componentInstance.onImport({ target: { files: [file], value: '' } } as unknown as Event);
+    const req = http.expectOne(`${API}/label/import`);
+    expect(req.request.method).toBe('POST');
+    req.flush({ imported: 3 });
+    http.expectOne(`${API}/label/samples`).flush(ROWS); // reload after import
     http.verify();
   });
 

@@ -65,4 +65,12 @@ export class LabelService {
   models(): Observable<ModelInfo[]> {
     return this.http.get<ModelInfo[]>(`${API}/models`);
   }
+  exportLabels(): Observable<Blob> {
+    return this.http.get(`${API}/label/export`, { responseType: 'blob' });
+  }
+  importLabels(file: File): Observable<{ imported: number }> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<{ imported: number }>(`${API}/label/import`, form);
+  }
 }

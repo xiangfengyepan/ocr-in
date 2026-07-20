@@ -2,6 +2,10 @@
   <mat-card-header>
     <mat-card-title>Models</mat-card-title>
     <mat-card-subtitle>Accuracy on IAM (CER / WER — lower is better). Click a trained model for its training curve.</mat-card-subtitle>
+    <span class="header-spacer"></span>
+    <span [matTooltip]="'Retraining on collected labels — coming soon'">
+      <button mat-flat-button color="primary" disabled>Retrain</button>
+    </span>
   </mat-card-header>
   <mat-card-content>
     <div class="scroll">
