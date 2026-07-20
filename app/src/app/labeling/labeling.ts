@@ -37,6 +37,7 @@ const DETECT_DEBOUNCE_MS = 400;
   ],
   templateUrl: './labeling.html',
   styleUrl: './labeling.scss',
+  host: { '(window:paste)': 'onPaste($event)' },
 })
 export class Labeling implements AfterViewInit, OnDestroy {
   private svc = inject(LabelService);
@@ -118,6 +119,68 @@ export class Labeling implements AfterViewInit, OnDestroy {
   }
 
   private png(): string { return this.canvasRef().nativeElement.toDataURL('image/png'); }
+
+  onImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (file) this.loadImageFile(file);
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0];
+    if (file) this.loadImageFile(file);
+  }
+
+  onPaste(event: ClipboardEvent): void {
+    const item = Array.from(event.clipboardData?.items ?? []).find((i) =>
+      i.type.startsWith('image/'),
+    );
+    const file = item?.getAsFile();
+    if (file) this.loadImageFile(file);
+  }
+
+  private loadImageFile(file: File): void {
+    if (!file.type.startsWith('image/')) {
+      this.toast.error('Please choose an image file.');
+      return;
+    }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      this.drawImage(img);
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => {
+      this.toast.error('Could not load that image.');
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+
+  private drawImage(img: HTMLImageElement): void {
+    if (!this.ctx) return;
+    const c = this.canvasRef().nativeElement;
+    this.ctx.fillStyle = '#fff';
+    this.ctx.fillRect(0, 0, c.width, c.height);
+    const scale = Math.min(c.width / img.width, c.height / img.height);
+    const w = img.width * scale;
+    const h = img.height * scale;
+    this.ctx.drawImage(img, (c.width - w) / 2, (c.height - h) / 2, w, h);
+    this.ctx.beginPath();
+    this.guess.set(null);
+    this.rating.set(null);
+    this.text.set('');
+    this.corrected.set(null);
+    this.detectedLang.set(null);
+    this.engine.set(null);
+    this.scheduleDetect();
+  }
 
   private scheduleDetect(): void {
     if (this.detectTimer) clearTimeout(this.detectTimer);

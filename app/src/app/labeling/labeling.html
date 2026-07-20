@@ -21,7 +21,10 @@
       (pointerdown)="onPointerDown($event)"
       (pointermove)="onPointerMove($event)"
       (pointerup)="onPointerUp()"
-      (pointerleave)="onPointerUp()"></canvas>
+      (pointerleave)="onPointerUp()"
+      (dragover)="onDragOver($event)"
+      (drop)="onDrop($event)"></canvas>
+    <p class="hint">Draw a word/line, or drop / paste / upload an image.</p>
 
     <div class="actions">
       <mat-button-toggle-group class="kind" [value]="mode()" (change)="setMode($event.value)"
@@ -36,6 +39,8 @@
         <span class="hint">auto-detected — change before Guess if wrong</span>
       }
       <span class="spacer"></span>
+      <button mat-stroked-button (click)="imageInput.click()">Upload image</button>
+      <input #imageInput type="file" accept="image/*" hidden (change)="onImageSelected($event)" />
       <button mat-stroked-button (click)="clear()">Clear</button>
       <button mat-flat-button color="primary" (click)="doGuess()" [disabled]="guessing()">
         @if (guessing()) {
