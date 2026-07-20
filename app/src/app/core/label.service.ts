@@ -16,6 +16,12 @@ export interface Sample {
   id: number; image_path: string; text: string; language: string;
   rating: Rating; engine_guess: string | null; created_at: string;
 }
+export interface Metric { cer: number; wer: number; }
+export interface ModelInfo {
+  id: string; name: string; detail: string; engine: string;
+  available: boolean; source: string; best_for: 'words' | 'lines' | null;
+  metrics: { words: Metric | null; lines: Metric | null };
+}
 
 @Injectable({ providedIn: 'root' })
 export class LabelService {
@@ -41,5 +47,8 @@ export class LabelService {
   }
   deleteSample(id: number): Observable<{ deleted: number }> {
     return this.http.delete<{ deleted: number }>(`${API}/label/sample/${id}`);
+  }
+  models(): Observable<ModelInfo[]> {
+    return this.http.get<ModelInfo[]>(`${API}/models`);
   }
 }

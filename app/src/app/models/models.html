@@ -1,0 +1,46 @@
+<mat-card appearance="outlined" class="models">
+  <mat-card-header>
+    <mat-card-title>Models</mat-card-title>
+    <mat-card-subtitle>Handwriting-recognition accuracy on IAM (CER / WER — lower is better)</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content>
+    <div class="scroll">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Source</th>
+            <th>Best for</th>
+            <th>Words CER</th>
+            <th>Words WER</th>
+            <th>Lines CER</th>
+            <th>Lines WER</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of models(); track m.id) {
+            <tr>
+              <td>
+                <div class="name">{{ m.name }}</div>
+                <div class="detail">{{ m.detail }}</div>
+              </td>
+              <td class="src">{{ m.source }}</td>
+              <td>
+                @if (m.best_for) {
+                  <span class="badge" [class.words]="m.best_for === 'words'" [class.lines]="m.best_for === 'lines'">{{ m.best_for }}</span>
+                } @else {
+                  —
+                }
+              </td>
+              <td [class.best]="m.best_for === 'words'">{{ pct(m.metrics.words?.cer) }}</td>
+              <td>{{ pct(m.metrics.words?.wer) }}</td>
+              <td [class.best]="m.best_for === 'lines'">{{ pct(m.metrics.lines?.cer) }}</td>
+              <td>{{ pct(m.metrics.lines?.wer) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="foot">CRNN word figures are test-set; TrOCR mixes test (lines) and val (words). Full details in docs/BENCHMARKS.md.</p>
+  </mat-card-content>
+</mat-card>
