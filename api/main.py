@@ -10,6 +10,7 @@ from api.model_catalog import build_catalog
 from api.ocr.routes import router as ocr_router
 from api.registry import ModelRegistry
 from api.util import settings
+from api.util.gpu_lock import gpu_busy
 
 app = FastAPI(title="ocr-in", version="0.1.0")
 app.add_middleware(
@@ -37,3 +38,9 @@ def list_engines() -> dict[str, list[str]]:
 @app.get("/models")
 def list_models() -> list[dict]:
     return build_catalog(settings.models_dir)
+
+
+@app.get("/engines/availability")
+def engines_availability() -> dict:
+    busy = gpu_busy()
+    return {"trocr": not busy, "crnn": not busy, "tesseract": True, "training": busy}

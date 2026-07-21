@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from api.inference.corrector import correct as correct_text
 from api.inference.crnn_recognizer import crop_to_ink, get_recognizer
 from api.inference.kind_detector import detect_kind
+from api.inference.tesseract_recognizer import get_tesseract_recognizer
 from api.inference.trocr_recognizer import get_trocr_recognizer
 from api.labeling.store import SampleStore
 from api.util import settings
@@ -44,6 +45,7 @@ class DetectResponse(BaseModel):
 class GuessRequest(BaseModel):
     image: str
     mode: Mode = "auto"
+    engine: Literal["crnn", "trocr", "tesseract"] | None = None
 
 
 class GuessResponse(BaseModel):
@@ -98,7 +100,10 @@ def correct(req: CorrectRequest) -> CorrectResponse:
 def guess(req: GuessRequest) -> GuessResponse:
     image = Image.open(io.BytesIO(_decode_png(req.image)))
     kind: Kind = detect_kind(image) if req.mode == "auto" else req.mode
-    if kind == "line":
+    if req.engine == "tesseract":
+        recognizer = get_tesseract_recognizer()
+        engine = "tesseract"
+    elif req.engine == "trocr" or (req.engine is None and kind == "line"):
         recognizer = get_trocr_recognizer()
         engine = "trocr"
     else:

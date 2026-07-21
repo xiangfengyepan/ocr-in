@@ -8,6 +8,7 @@ from PIL import Image
 
 from api.registry import ModelRegistry
 from api.util import settings
+from api.util.gpu_lock import GPU_LOCK
 from training.augmentation.transforms import IMG_HEIGHT, IMG_WIDTH, Preprocess
 from training.models import CRNN, greedy_decode
 from training.util.charset import Charset
@@ -42,7 +43,8 @@ class CrnnRecognizer:
     def recognize(self, image: Image.Image) -> dict:
         cropped = crop_to_ink(image)
         x = self.preprocess(cropped).unsqueeze(0).to(self.device)
-        log_probs = self.model(x)  # (T, 1, C)
+        with GPU_LOCK:
+            log_probs = self.model(x)  # (T, 1, C)
         text = greedy_decode(log_probs.cpu(), self.charset)[0]
         probs = log_probs.exp().squeeze(1)  # (T, C)
         max_prob, idx = probs.max(dim=1)  # (T,)

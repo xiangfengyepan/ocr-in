@@ -4,6 +4,7 @@ import torch
 from PIL import Image
 
 from api.inference.crnn_recognizer import crop_to_ink
+from api.util.gpu_lock import GPU_LOCK
 
 STOCK_MODEL = "microsoft/trocr-base-handwritten"
 
@@ -20,13 +21,14 @@ class TrocrRecognizer:
     def recognize(self, image: Image.Image) -> dict:
         rgb = crop_to_ink(image).convert("RGB")
         pixel_values = self.processor(images=rgb, return_tensors="pt").pixel_values.to(self.device)
-        out = self.model.generate(
-            pixel_values,
-            max_new_tokens=64,
-            no_repeat_ngram_size=3,
-            output_scores=True,
-            return_dict_in_generate=True,
-        )
+        with GPU_LOCK:
+            out = self.model.generate(
+                pixel_values,
+                max_new_tokens=64,
+                no_repeat_ngram_size=3,
+                output_scores=True,
+                return_dict_in_generate=True,
+            )
         text = self.processor.batch_decode(out.sequences, skip_special_tokens=True)[0].strip()
         return {"text": text, "confidence": self._confidence(out)}
 
