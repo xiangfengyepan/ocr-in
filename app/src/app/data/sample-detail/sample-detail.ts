@@ -33,6 +33,11 @@ export class SampleDetail {
     return this.svc.imageUrl(this.sample.id);
   }
 
+  confidenceText(): string {
+    const c = this.sample.confidence;
+    return c == null ? '—' : `${Math.round(c * 100)}%`;
+  }
+
   remove(): void {
     this.dialog
       .open(ConfirmDialog, {

@@ -16,6 +16,10 @@
     <dd>
       <span class="rating-badge" [class]="'r-' + sample.rating">{{ sample.rating }}</span>
     </dd>
+    <dt>Confidence</dt>
+    <dd [class.low-conf]="sample.confidence != null && sample.confidence < 0.5">
+      {{ confidenceText() }}
+    </dd>
     <dt>Language</dt>
     <dd>{{ sample.language }}</dd>
   </dl>

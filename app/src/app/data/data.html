@@ -46,6 +46,9 @@
         >
           <img [src]="imageUrl(s.id)" loading="lazy" alt="" />
           <span class="txt">{{ s.text }}</span>
+          @if (s.confidence != null) {
+            <span class="conf" [class.low]="s.confidence < 0.5">{{ confidencePct(s) }}</span>
+          }
           <span class="rating">{{ s.rating }}</span>
           <button
             mat-icon-button

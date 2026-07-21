@@ -71,6 +71,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.row .conf {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+.row .conf.low { color: #c62828; font-weight: 600; }
 .row .rating {
   color: var(--mat-sys-on-surface-variant);
   font-size: 0.8rem;

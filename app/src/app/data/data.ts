@@ -85,6 +85,10 @@ export class Data implements OnInit, OnDestroy {
     return this.svc.imageUrl(id);
   }
 
+  confidencePct(s: Sample): string {
+    return s.confidence == null ? '' : `${Math.round(s.confidence * 100)}%`;
+  }
+
   setFilter(f: Filter): void {
     this.filter.set(f);
     this.pageIndex.set(0);
