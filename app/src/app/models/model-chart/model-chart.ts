@@ -24,6 +24,11 @@ export class ModelChart {
     return s.total ? ((s.by_rating[key] || 0) / s.total) * 100 : 0;
   }
 
+  bench(): { cer: number; wer: number } | null {
+    const m = this.data.metrics;
+    return this.data.best_for === 'lines' ? m.lines : this.data.best_for === 'words' ? m.words : null;
+  }
+
   readonly W = 460;
   readonly H = 240;
   readonly pad = 40;

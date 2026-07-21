@@ -23,7 +23,10 @@
           <polyline [attr.points]="points('wer')" class="line wer" />
         </svg>
         @if (data.meta?.epoch) {
-          <p class="hint">Best: epoch {{ data.meta?.epoch }} · CER {{ ((data.meta?.cer ?? 0) * 100).toFixed(1) }}%</p>
+          <p class="hint">Best epoch {{ data.meta?.epoch }} · <strong>validation</strong> CER {{ ((data.meta?.cer ?? 0) * 100).toFixed(1) }}% / WER {{ ((data.meta?.wer ?? 0) * 100).toFixed(1) }}%</p>
+        }
+        @if (bench(); as b) {
+          <p class="hint">Benchmark (IAM <strong>test</strong> set — the figure in the table): CER {{ (b.cer * 100).toFixed(1) }}% / WER {{ (b.wer * 100).toFixed(1) }}%</p>
         }
       } @else {
         <p class="hint pad">No training history for this model (not trained here — pretrained/baseline).</p>
