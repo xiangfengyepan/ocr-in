@@ -70,6 +70,9 @@ export class LabelService {
     const q = rating ? `?rating=${rating}&limit=100000` : '';
     return this.http.get<Sample[]>(`${API}/label/samples${q}`);
   }
+  listPending(): Observable<Sample[]> {
+    return this.http.get<Sample[]>(`${API}/label/samples?rating=pending&order=confidence&limit=100000`);
+  }
   pageSamples(opts: {
     rating?: Rating; q?: string; limit: number; offset: number;
   }): Observable<Sample[]> {

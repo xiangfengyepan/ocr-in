@@ -29,7 +29,9 @@ function setup() {
 }
 
 function flushQueue(http: HttpTestingController, samples: Sample[]): void {
-  const req = http.expectOne((r) => r.url.includes('/label/samples'));
+  const req = http.expectOne(
+    (r) => r.url.includes('/label/samples') && r.url.includes('order=confidence'),
+  );
   expect(req.request.method).toBe('GET');
   req.flush(samples);
 }

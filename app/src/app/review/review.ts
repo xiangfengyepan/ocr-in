@@ -45,7 +45,7 @@ export class Review implements OnInit {
   ngOnInit(): void {
     this.loading.set(true);
     this.svc
-      .listSamples('pending')
+      .listPending()
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (samples) => {

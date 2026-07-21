@@ -127,6 +127,42 @@ def test_samples_list_and_image(tmp_path):
     assert client.get("/label/image/9999").status_code == 404
 
 
+def test_samples_order_confidence_ascending(tmp_path):
+    from api.labeling import routes
+
+    routes.store = routes.SampleStore(tmp_path)
+    routes.store.add_sample(
+        base64.b64decode(_png_data_url().split(",", 1)[1]),
+        "high",
+        "english",
+        "pending",
+        None,
+        confidence=0.9,
+        kind="line",
+    )
+    routes.store.add_sample(
+        base64.b64decode(_png_data_url().split(",", 1)[1]),
+        "low",
+        "english",
+        "pending",
+        None,
+        confidence=0.1,
+        kind="line",
+    )
+    routes.store.add_sample(
+        base64.b64decode(_png_data_url().split(",", 1)[1]),
+        "none",
+        "english",
+        "pending",
+        None,
+        confidence=None,
+        kind="line",
+    )
+    client = TestClient(main.app)
+    rows = client.get("/label/samples?rating=pending&order=confidence").json()
+    assert [r["text"] for r in rows] == ["low", "high", "none"]
+
+
 def test_patch_sample(tmp_path):
     client = _client(tmp_path)
     sid = _add(client, "gues", rating="incorrect")

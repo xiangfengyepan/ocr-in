@@ -131,10 +131,14 @@ def _check_rating(rating: str | None) -> None:
 
 @router.get("/samples")
 def samples(
-    limit: int = 100, offset: int = 0, rating: str | None = None, q: str | None = None
+    limit: int = 100,
+    offset: int = 0,
+    rating: str | None = None,
+    q: str | None = None,
+    order: str = "id",
 ) -> list[dict]:
     _check_rating(rating)
-    return store.list_samples(limit, offset, rating=rating, q=q)
+    return store.list_samples(limit, offset, rating=rating, q=q, order=order)
 
 
 @router.get("/samples/count")
