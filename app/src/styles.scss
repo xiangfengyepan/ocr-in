@@ -50,9 +50,17 @@ body {
 }
 
 .page {
-  max-width: 960px;
+  max-width: 1040px;
   margin: 0 auto;
-  padding: 1.5rem 1rem;
+  padding: 2rem 1.5rem 3rem;
+}
+@media (max-width: 600px) {
+  .page { padding: 1.25rem 1rem 2rem; }
+}
+
+// Comfortable vertical rhythm between top-level blocks on every page.
+.page > * + * {
+  margin-top: 1.25rem;
 }
 
 .image-zoom-panel .mat-mdc-dialog-surface {
