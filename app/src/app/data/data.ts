@@ -47,7 +47,7 @@ export class Data implements OnInit, OnDestroy {
   filter = signal<Filter>('all');
   query = signal('');
   pageIndex = signal(0);
-  pageSize = signal(25);
+  pageSize = signal(10);
   selectedId = signal<number | null>(null);
   pendingCount = signal(0);
 
