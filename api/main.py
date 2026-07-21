@@ -9,6 +9,7 @@ from api.labeling.routes import router as labeling_router
 from api.model_catalog import build_catalog
 from api.ocr.routes import router as ocr_router
 from api.registry import ModelRegistry
+from api.training_jobs.routes import router as training_router
 from api.util import settings
 from api.util.gpu_lock import gpu_busy
 
@@ -23,6 +24,7 @@ registry = ModelRegistry(settings.models_dir)
 app.include_router(labeling_router)
 app.include_router(ocr_router)
 app.include_router(import_router)
+app.include_router(training_router)
 
 
 @app.get("/health")
