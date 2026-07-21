@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal, viewChild, ElementRef } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
@@ -12,6 +13,7 @@ import { ToastService } from '../shared/toast.service';
 @Component({
   selector: 'app-review',
   imports: [
+    DecimalPipe,
     RouterLink,
     MatCardModule,
     MatButtonModule,

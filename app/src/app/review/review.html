@@ -16,7 +16,14 @@
       </div>
 
       <div class="panel">
-        <p class="progress">{{ index() + 1 }} of {{ queue().length }}</p>
+        <p class="progress">
+          {{ index() + 1 }} of {{ queue().length }}
+          @if (sample.confidence != null) {
+            <span class="confidence" [class.low]="sample.confidence < 0.5">
+              · confidence {{ sample.confidence * 100 | number: '1.0-0' }}%
+            </span>
+          }
+        </p>
 
         <div class="output">
           <span class="label">Model output</span>

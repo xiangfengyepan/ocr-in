@@ -43,6 +43,7 @@ export interface ImportJob {
 export interface Sample {
   id: number; image_path: string; text: string; language: string;
   rating: Rating; engine_guess: string | null; created_at: string;
+  confidence?: number | null;
 }
 export interface Metric { cer: number; wer: number; }
 export interface EpochStat { epoch: number; cer: number; wer: number; }

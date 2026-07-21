@@ -78,6 +78,8 @@
   font-size: 0.9rem;
   text-align: center;
 }
+.progress .confidence { color: var(--mat-sys-on-surface-variant); }
+.progress .confidence.low { color: #c62828; font-weight: 600; }
 
 .output {
   text-align: center;
