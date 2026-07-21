@@ -33,6 +33,12 @@ class SampleStore:
                 "UPDATE samples SET rating = 'incorrect' WHERE rating IN (?, ?)",
                 _LEGACY_RATINGS,
             )
+            existing = {r[1] for r in conn.execute("PRAGMA table_info(samples)")}
+            if "confidence" not in existing:
+                conn.execute("ALTER TABLE samples ADD COLUMN confidence REAL")
+            if "kind" not in existing:
+                conn.execute("ALTER TABLE samples ADD COLUMN kind TEXT")
+                conn.execute("UPDATE samples SET kind = 'word' WHERE kind IS NULL")
 
     def _conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
@@ -46,6 +52,8 @@ class SampleStore:
         language: str,
         rating: str,
         engine_guess: str | None,
+        confidence: float | None = None,
+        kind: str = "word",
     ) -> dict:
         if rating not in _RATINGS:
             raise ValueError(f"invalid rating: {rating!r}")
@@ -54,9 +62,10 @@ class SampleStore:
         created = datetime.now(timezone.utc).isoformat()
         with self._conn() as conn:
             cur = conn.execute(
-                "INSERT INTO samples (image_path, text, language, rating, engine_guess, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                ("", text, language, rating, engine_guess, created),
+                "INSERT INTO samples "
+                "(image_path, text, language, rating, engine_guess, created_at, confidence, kind) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                ("", text, language, rating, engine_guess, created, confidence, kind),
             )
             sample_id = int(cur.lastrowid)
             image_dir = self.root / language
@@ -86,11 +95,17 @@ class SampleStore:
         offset: int = 0,
         rating: str | None = None,
         q: str | None = None,
+        order: str = "id",
     ) -> list[dict]:
         clause, params = self._filter(rating, q)
+        order_by = (
+            "confidence IS NULL, confidence ASC, id DESC"
+            if order == "confidence"
+            else "id DESC"
+        )
         with self._conn() as conn:
             rows = conn.execute(
-                f"SELECT * FROM samples{clause} ORDER BY id DESC LIMIT ? OFFSET ?",
+                f"SELECT * FROM samples{clause} ORDER BY {order_by} LIMIT ? OFFSET ?",
                 [*params, limit, offset],
             ).fetchall()
         return [dict(row) for row in rows]
@@ -149,3 +164,12 @@ class SampleStore:
             if row["rating"] in by_rating:
                 by_rating[row["rating"]] = row[1]
         return {"total": int(total), "by_rating": by_rating}
+
+    def training_rows(self, kind: str) -> list[dict]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT image_path, text FROM samples "
+                "WHERE kind = ? AND rating IN ('correct', 'incorrect')",
+                (kind,),
+            ).fetchall()
+        return [dict(r) for r in rows]

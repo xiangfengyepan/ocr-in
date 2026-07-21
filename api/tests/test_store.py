@@ -121,3 +121,41 @@ def test_legacy_ratings_migrated_on_init(tmp_path: Path):
     reopened = SampleStore(tmp_path)  # migration runs on init
     ratings = {r["rating"] for r in reopened.list_samples()}
     assert ratings == {"incorrect"}
+
+
+def test_migration_adds_confidence_and_kind(tmp_path):
+    from api.labeling.store import SampleStore
+    s = SampleStore(tmp_path)
+    with s._conn() as c:
+        cols = {r[1] for r in c.execute("PRAGMA table_info(samples)")}
+    assert {"confidence", "kind"} <= cols
+
+
+def test_add_sample_stores_confidence_and_kind(tmp_path):
+    from api.labeling.store import SampleStore
+    s = SampleStore(tmp_path)
+    s.add_sample(_png_bytes(), "hi", "english", "pending", None, confidence=0.4, kind="line")
+    row = s.list_samples()[0]
+    assert row["confidence"] == 0.4 and row["kind"] == "line"
+
+
+def test_list_samples_order_confidence_nulls_last(tmp_path):
+    from api.labeling.store import SampleStore
+    s = SampleStore(tmp_path)
+    s.add_sample(_png_bytes(), "a", "english", "pending", None, confidence=0.9, kind="line")
+    s.add_sample(_png_bytes(), "b", "english", "pending", None, confidence=0.1, kind="line")
+    s.add_sample(_png_bytes(), "c", "english", "pending", None, confidence=None, kind="line")
+    order = [r["text"] for r in s.list_samples(order="confidence")]
+    assert order[0] == "b" and order[-1] == "c"
+
+
+def test_training_rows_filters_rating_and_kind(tmp_path):
+    from api.labeling.store import SampleStore
+    s = SampleStore(tmp_path)
+    s.add_sample(_png_bytes(), "keep1", "english", "correct", None, kind="line")
+    s.add_sample(_png_bytes(), "keep2", "english", "incorrect", None, kind="line")
+    s.add_sample(_png_bytes(), "skip-pending", "english", "pending", None, kind="line")
+    s.add_sample(_png_bytes(), "skip-word", "english", "correct", None, kind="word")
+    rows = s.training_rows("line")
+    assert sorted(r["text"] for r in rows) == ["keep1", "keep2"]
+    assert all("image_path" in r and "text" in r for r in rows)
