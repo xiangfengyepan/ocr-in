@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   OnDestroy,
+  computed,
   inject,
   signal,
   viewChild,
@@ -17,12 +18,14 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { Kind, Language, LabelService } from '../core/label.service';
+import { EnginesAvailability, Kind, Language, LabelService } from '../core/label.service';
 import { ToastService } from '../shared/toast.service';
 
 type Rating = 'correct' | 'incorrect';
+export type EngineChoice = 'auto' | 'crnn' | 'trocr' | 'tesseract';
 
 const DETECT_DEBOUNCE_MS = 400;
+const AVAILABILITY_POLL_MS = 2000;
 
 @Component({
   selector: 'app-labeling',
@@ -58,7 +61,7 @@ export class Labeling implements AfterViewInit, OnDestroy {
   saving = signal(false);
   mode = signal<Kind>('word');
   detecting = signal(false);
-  engine = signal<string | null>(null);
+  guessEngine = signal<string | null>(null);
   readonly languages: Language[] = ['auto', 'english', 'spanish', 'catalan', 'chinese', 'japanese'];
   language = signal<Language>('auto');
   autoCorrect = signal(true);
@@ -66,16 +69,50 @@ export class Labeling implements AfterViewInit, OnDestroy {
   correcting = signal(false);
   detectedLang = signal<string | null>(null);
 
+  engine = signal<EngineChoice>('auto');
+  availability = signal<EnginesAvailability | null>(null);
+  gpuDisabled = computed(() => !!this.availability()?.training);
+  private availabilityPollHandle: ReturnType<typeof setInterval> | null = null;
+
   ngAfterViewInit(): void {
     const ctx = this.canvasRef().nativeElement.getContext('2d');
     if (!ctx) return;
     this.ctx = ctx;
     this.clear();
     this.refreshStats();
+    this.refreshAvailability();
   }
 
   ngOnDestroy(): void {
     if (this.detectTimer) clearTimeout(this.detectTimer);
+    this.stopAvailabilityPoll();
+  }
+
+  setEngine(e: EngineChoice): void {
+    this.engine.set(e);
+  }
+
+  private refreshAvailability(): void {
+    this.svc.enginesAvailability().subscribe((a) => {
+      this.availability.set(a);
+      if (a.training) this.startAvailabilityPoll();
+      else this.stopAvailabilityPoll();
+    });
+  }
+
+  private startAvailabilityPoll(): void {
+    if (this.availabilityPollHandle) return;
+    this.availabilityPollHandle = setInterval(
+      () => this.refreshAvailability(),
+      AVAILABILITY_POLL_MS,
+    );
+  }
+
+  private stopAvailabilityPoll(): void {
+    if (this.availabilityPollHandle) {
+      clearInterval(this.availabilityPollHandle);
+      this.availabilityPollHandle = null;
+    }
   }
 
   onPointerDown(e: PointerEvent): void { this.drawing = true; this.stroke(e); }
@@ -112,7 +149,7 @@ export class Labeling implements AfterViewInit, OnDestroy {
     this.guess.set(null);
     this.rating.set(null);
     this.text.set('');
-    this.engine.set(null);
+    this.guessEngine.set(null);
     this.corrected.set(null);
     this.detectedLang.set(null);
   }
@@ -181,7 +218,7 @@ export class Labeling implements AfterViewInit, OnDestroy {
     this.text.set('');
     this.corrected.set(null);
     this.detectedLang.set(null);
-    this.engine.set(null);
+    this.guessEngine.set(null);
     this.scheduleDetect();
   }
 
@@ -202,17 +239,20 @@ export class Labeling implements AfterViewInit, OnDestroy {
 
   doGuess(): void {
     this.guessing.set(true);
+    const requested = this.gpuDisabled() ? 'tesseract' : this.engine();
+    const effective = requested === 'auto' ? undefined : requested;
     this.svc
-      .guess(this.png(), this.mode())
+      .guess(this.png(), this.mode(), effective)
       .pipe(finalize(() => this.guessing.set(false)))
       .subscribe({
         next: (r) => {
           this.guess.set(r.guess);
           this.confidence.set(r.confidence);
           this.text.set(r.guess);
-          this.engine.set(r.engine);
+          this.guessEngine.set(r.engine);
           this.rating.set(null);
           if (this.autoCorrect()) this.correctStep(r.guess);
+          this.refreshAvailability();
         },
         error: () =>
           this.toast.error('Guess failed — check the API is running and the model is available.'),

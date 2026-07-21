@@ -19,6 +19,13 @@ export interface OcrLine { box: number[]; text: string; }
 export interface OcrResult { width: number; height: number; lines: OcrLine[]; text: string; }
 
 export interface GuessResponse { guess: string; confidence: number; kind: Kind; engine: string; }
+export type EngineName = 'crnn' | 'trocr' | 'tesseract';
+export interface EnginesAvailability {
+  trocr: boolean;
+  crnn: boolean;
+  tesseract: boolean;
+  training: boolean;
+}
 export interface SampleBody {
   image: string;
   rating: Rating; text: string; engine_guess: string | null;
@@ -54,8 +61,13 @@ export class LabelService {
   detect(image: string): Observable<{ kind: Kind }> {
     return this.http.post<{ kind: Kind }>(`${API}/label/detect`, { image });
   }
-  guess(image: string, mode: Mode = 'auto'): Observable<GuessResponse> {
-    return this.http.post<GuessResponse>(`${API}/label/guess`, { image, mode });
+  guess(image: string, mode: Mode = 'auto', engine?: EngineName): Observable<GuessResponse> {
+    const body: { image: string; mode: Mode; engine?: EngineName } = { image, mode };
+    if (engine) body.engine = engine;
+    return this.http.post<GuessResponse>(`${API}/label/guess`, body);
+  }
+  enginesAvailability(): Observable<EnginesAvailability> {
+    return this.http.get<EnginesAvailability>(`${API}/engines/availability`);
   }
   correct(text: string, language: Language, kind: Kind): Observable<CorrectResponse> {
     return this.http.post<CorrectResponse>(`${API}/label/correct`, { text, language, kind });
