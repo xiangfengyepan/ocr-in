@@ -87,6 +87,9 @@ def run_training_job(job: dict) -> dict:
         job["base_wer"] = base["wer"]
         job["new_cer"] = new["cer"]
         job["new_wer"] = new["wer"]
+        # Stamp the candidate as trained-on-user-labels so the Models tab can tell
+        # a personalized checkpoint apart from a baseline (IAM-trained) one.
+        _write_personalized_marker(cand, kind, base, new, epochs)
         job["candidate_path"] = str(cand)
         job["state"] = "done"
     except Exception as exc:  # noqa: BLE001 - worker must never crash on a job
@@ -133,6 +136,30 @@ def _read_json(path: Path) -> dict | list | None:
     return json.loads(path.read_text()) if path.is_file() else None
 
 
+def _write_personalized_marker(cand: Path, kind: str, base: dict, new: dict, epochs: int) -> None:
+    cand.mkdir(parents=True, exist_ok=True)
+    (cand / "personalized.json").write_text(
+        json.dumps(
+            {
+                "kind": kind,
+                "epoch": epochs,
+                "cer": new["cer"],
+                "wer": new["wer"],
+                "base_cer": base["cer"],
+                "base_wer": base["wer"],
+            }
+        )
+    )
+    (cand / "history.json").write_text(
+        json.dumps(
+            [
+                {"epoch": 0, "cer": base["cer"], "wer": base["wer"]},
+                {"epoch": epochs, "cer": new["cer"], "wer": new["wer"]},
+            ]
+        )
+    )
+
+
 @router.get("/models")
 def trainable_models() -> list[dict]:
     kinds = [
@@ -142,8 +169,10 @@ def trainable_models() -> list[dict]:
     out: list[dict] = []
     for _kind, engine, model_id, name, best_for in kinds:
         path = settings.models_dir / engine / LANGUAGE
-        available = registry.has_finetuned(engine, LANGUAGE)
-        meta = _read_json(path / "meta.json") if available else None
+        # "Personalized" = trained on the user's labels via our promote flow,
+        # marked by personalized.json. A bare baseline checkpoint does NOT count.
+        available = (path / "personalized.json").is_file()
+        meta = _read_json(path / "personalized.json") if available else None
         history = _read_json(path / "history.json") if available else None
         metric = (
             {"cer": meta.get("cer"), "wer": meta.get("wer")}

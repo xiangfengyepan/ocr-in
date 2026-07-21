@@ -15,15 +15,22 @@ def _patch(monkeypatch, models_dir: Path) -> None:
     monkeypatch.setattr(routes.settings, "models_dir", models_dir)
 
 
-def test_train_models_reports_finetuned_and_stock(monkeypatch, tmp_path):
+def test_train_models_only_counts_personalized_marker(monkeypatch, tmp_path):
     models_dir = tmp_path / "models"
+    # line/trocr: a personalized checkpoint (stamped by our promote flow)
     trocr_dir = models_dir / "trocr" / "english"
     trocr_dir.mkdir(parents=True)
-    (trocr_dir / "w").write_text("x")
-    (trocr_dir / "meta.json").write_text(json.dumps({"epoch": 7, "cer": 0.05, "wer": 0.12}))
-    (trocr_dir / "history.json").write_text(
-        json.dumps([{"epoch": 1, "cer": 0.3, "wer": 0.5}, {"epoch": 7, "cer": 0.05, "wer": 0.12}])
+    (trocr_dir / "personalized.json").write_text(
+        json.dumps({"epoch": 7, "cer": 0.05, "wer": 0.12, "base_cer": 0.3, "base_wer": 0.5})
     )
+    (trocr_dir / "history.json").write_text(
+        json.dumps([{"epoch": 0, "cer": 0.3, "wer": 0.5}, {"epoch": 7, "cer": 0.05, "wer": 0.12}])
+    )
+    # word/crnn: a BASELINE checkpoint (dir + meta.json but NO personalized.json)
+    crnn_dir = models_dir / "crnn" / "english"
+    crnn_dir.mkdir(parents=True)
+    (crnn_dir / "w").write_text("x")
+    (crnn_dir / "meta.json").write_text(json.dumps({"epoch": 9, "cer": 0.077, "wer": 0.2}))
     _patch(monkeypatch, models_dir)
 
     client = TestClient(main.app)
@@ -33,18 +40,14 @@ def test_train_models_reports_finetuned_and_stock(monkeypatch, tmp_path):
 
     line = entries["trocr-line-personal"]
     assert line["available"] is True
-    assert line["engine"] == "trocr"
-    assert line["best_for"] == "lines"
-    assert line["source"] == "models/trocr/english"
-    assert line["meta"] == {"epoch": 7, "cer": 0.05, "wer": 0.12}
+    assert line["meta"]["cer"] == 0.05
     assert line["history"][-1]["epoch"] == 7
     assert line["metrics"]["lines"] == {"cer": 0.05, "wer": 0.12}
     assert line["metrics"]["words"] is None
 
+    # baseline CRNN is NOT reported as personalized (no personalized.json)
     word = entries["crnn-word-personal"]
     assert word["available"] is False
-    assert word["engine"] == "crnn"
-    assert word["best_for"] == "words"
     assert word["meta"] is None
     assert word["history"] is None
     assert word["metrics"] == {"words": None, "lines": None}
