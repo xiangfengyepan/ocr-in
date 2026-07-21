@@ -22,6 +22,12 @@ def test_engines_availability_idle():
     assert body == {"trocr": True, "crnn": True, "tesseract": True, "training": False}
 
 
+def test_engines_availability_during_training(monkeypatch):
+    monkeypatch.setattr(main, "training_active", lambda: True)
+    body = TestClient(main.app).get("/engines/availability").json()
+    assert body == {"trocr": False, "crnn": False, "tesseract": True, "training": True}
+
+
 def test_guess_routes_to_tesseract(monkeypatch):
     from api.labeling import routes
 

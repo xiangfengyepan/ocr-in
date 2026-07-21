@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import queue
+import shutil
 import threading
 from pathlib import Path
 from typing import Literal
@@ -20,6 +21,8 @@ KIND_ENGINE = {"line": "trocr", "word": "crnn"}
 MIN_TRAIN_ROWS = 50
 LANGUAGE = "english"
 DEFAULT_EPOCHS = 8
+ACTIVE_STATES = ("queued", "training", "evaluating")
+TRAINING_STATES = ("training", "evaluating")
 
 router = APIRouter(prefix="/train", tags=["train"])
 store = SampleStore(settings.collected_dir)
@@ -71,8 +74,12 @@ def run_training_job(job: dict) -> dict:
         with GPU_LOCK:
             base = eval_rows(kind, registry.resolve(engine, LANGUAGE).weights, val)
             job["state"] = "training"
+            epochs = job["epochs_total"] or DEFAULT_EPOCHS
+            job["epochs_total"] = epochs
             cand = settings.models_dir / "_candidates" / f"{engine}-{job['id']}"
-            train_from_rows(kind, train, cand, job["epochs_total"] or DEFAULT_EPOCHS)
+            train_from_rows(
+                kind, train, cand, epochs, on_epoch=lambda e: job.__setitem__("epoch", e)
+            )
             job["state"] = "evaluating"
             new = eval_rows(kind, cand, val)
         job["base_cer"] = base["cer"]
@@ -104,11 +111,18 @@ def _ensure_worker() -> None:
             _worker_started = True
 
 
+def training_active() -> bool:
+    with _jobs_lock:
+        return any(j["state"] in TRAINING_STATES for j in _jobs)
+
+
 @router.post("")
 def start_train(body: TrainRequest) -> dict:
     _ensure_worker()
-    job = _new_job(body.kind)
     with _jobs_lock:
+        if any(j["kind"] == body.kind and j["state"] in ACTIVE_STATES for j in _jobs):
+            raise HTTPException(status_code=409, detail=f"a {body.kind} job is already running")
+        job = _new_job(body.kind)
         _jobs.append(job)
     _job_queue.put(job)
     return {"job": dict(job)}
@@ -126,9 +140,25 @@ def promote(body: PromoteRequest) -> dict:
         job = next((j for j in _jobs if j["id"] == body.job_id), None)
     if job is None:
         raise HTTPException(status_code=404, detail="job not found")
+    engine = KIND_ENGINE[job["kind"]]
+    if job["promoted"]:
+        return {"promoted": True, "engine": engine, "kind": job["kind"]}
     if job["state"] != "done":
         raise HTTPException(status_code=400, detail="job is not done")
-    engine = KIND_ENGINE[job["kind"]]
-    registry.promote(engine, LANGUAGE, Path(job["candidate_path"]))
+    candidate_path = Path(job["candidate_path"])
+    registry.promote(engine, LANGUAGE, candidate_path)
     job["promoted"] = True
+    shutil.rmtree(candidate_path, ignore_errors=True)
+    _reset_recognizer(engine)
     return {"promoted": True, "engine": engine, "kind": job["kind"]}
+
+
+def _reset_recognizer(engine: str) -> None:
+    if engine == "trocr":
+        from api.inference.trocr_recognizer import reset_trocr_recognizer
+
+        reset_trocr_recognizer()
+    elif engine == "crnn":
+        from api.inference.crnn_recognizer import reset_recognizer
+
+        reset_recognizer()

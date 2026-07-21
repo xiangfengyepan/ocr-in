@@ -22,6 +22,7 @@ function setup() {
   fixture.detectChanges();
   const http = TestBed.inject(HttpTestingController);
   http.expectOne(`${API}/models`).flush([MODEL]);
+  http.expectOne((r) => r.url.includes('/train/status')).flush([]);
   fixture.detectChanges();
   return { fixture, http };
 }
@@ -33,6 +34,42 @@ describe('Models', () => {
     expect(el.textContent).toContain('CRNN');
     expect(el.textContent).toContain('10.3%');
     http.verify();
+  });
+
+  it('rehydrates in-progress jobs from status on init and resumes polling', () => {
+    TestBed.configureTestingModule({
+      imports: [Models],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    const fixture = TestBed.createComponent(Models);
+    const c = fixture.componentInstance;
+
+    vi.useFakeTimers();
+    try {
+      fixture.detectChanges();
+      const http = TestBed.inject(HttpTestingController);
+      http.expectOne(`${API}/models`).flush([MODEL]);
+      const active: TrainJob = {
+        id: 42, kind: 'line', state: 'training', epoch: 2, epochs_total: 8,
+        base_cer: null, base_wer: null, new_cer: null, new_wer: null,
+        candidate_path: null, promoted: false, error: null,
+      };
+      http.expectOne((r) => r.url.includes('/train/status')).flush([active]);
+      fixture.detectChanges();
+
+      expect(c.jobs().line?.id).toBe(42);
+      expect(c.isActive(c.jobs().line)).toBe(true);
+
+      // polling resumed
+      vi.advanceTimersByTime(2000);
+      http.expectOne((r) => r.url.includes('/train/status'))
+        .flush([{ ...active, state: 'done', epoch: 8 }]);
+      fixture.detectChanges();
+      expect(c.jobs().line?.state).toBe('done');
+      http.verify();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('starts training and renders the polled job state', () => {

@@ -42,10 +42,13 @@ def _seed_store(tmp_path: Path, n: int, kind: str = "line") -> SampleStore:
     return store
 
 
-def _train_stub(kind, rows, out, epochs):
+def _train_stub(kind, rows, out, epochs, on_epoch=None):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "w").write_text("x")
+    if on_epoch is not None:
+        for e in range(1, epochs + 1):
+            on_epoch(e)
 
 
 def _eval_stub(kind, weights, rows):
@@ -137,6 +140,82 @@ def test_promote_rejects_unfinished_job(monkeypatch, tmp_path):
     assert resp.status_code == 400
 
 
+def test_run_training_job_updates_epoch(monkeypatch, tmp_path):
+    store = _seed_store(tmp_path, 60)
+    _patch(monkeypatch, tmp_path, store)
+    job = routes.run_training_job(_base_job())
+    assert job["state"] == "done"
+    assert job["epochs_total"] == routes.DEFAULT_EPOCHS
+    assert job["epoch"] == routes.DEFAULT_EPOCHS
+
+
+def test_start_train_rejects_duplicate_active_kind(monkeypatch, tmp_path):
+    store = _seed_store(tmp_path, 60)
+    _patch(monkeypatch, tmp_path, store)
+    monkeypatch.setattr(routes, "_ensure_worker", lambda: None)
+    routes._jobs.clear()
+    client = TestClient(main.app)
+    try:
+        assert client.post("/train", json={"kind": "line"}).status_code == 200
+        dup = client.post("/train", json={"kind": "line"})
+        assert dup.status_code == 409
+        # a different kind is still allowed
+        assert client.post("/train", json={"kind": "word"}).status_code == 200
+    finally:
+        while not routes._job_queue.empty():
+            routes._job_queue.get_nowait()
+
+
+def test_training_active_only_during_training_or_evaluating(tmp_path):
+    routes._jobs.clear()
+    assert routes.training_active() is False
+    job = _base_job()
+    routes._jobs.append(job)
+    for state, expected in [
+        ("queued", False),
+        ("training", True),
+        ("evaluating", True),
+        ("done", False),
+        ("failed", False),
+    ]:
+        job["state"] = state
+        assert routes.training_active() is expected
+    routes._jobs.clear()
+
+
+def test_promote_resets_recognizer_and_is_idempotent(monkeypatch, tmp_path):
+    store = _seed_store(tmp_path, 60)
+    _patch(monkeypatch, tmp_path, store)
+    monkeypatch.setattr(routes, "_ensure_worker", lambda: None)
+    routes._jobs.clear()
+
+    promote_calls: list = []
+    monkeypatch.setattr(
+        routes.registry, "promote", lambda engine, language, cand: promote_calls.append(cand)
+    )
+    reset_calls: list = []
+    monkeypatch.setattr(routes, "_reset_recognizer", lambda engine: reset_calls.append(engine))
+
+    client = TestClient(main.app)
+    client.post("/train", json={"kind": "line"})
+    queued = routes._job_queue.get_nowait()
+    routes.run_training_job(queued)
+    cand = queued["candidate_path"]
+
+    r1 = client.post("/train/promote", json={"job_id": queued["id"]})
+    assert r1.status_code == 200
+    assert reset_calls == ["trocr"]
+    assert len(promote_calls) == 1
+    assert not Path(cand).exists()  # M5: candidate cleaned up
+
+    # M7: second promote is idempotent — no re-promote, no extra reset
+    r2 = client.post("/train/promote", json={"job_id": queued["id"]})
+    assert r2.status_code == 200
+    assert r2.json() == {"promoted": True, "engine": "trocr", "kind": "line"}
+    assert len(promote_calls) == 1
+    assert reset_calls == ["trocr"]
+
+
 def test_train_job_evaluates_and_awaits_promote(monkeypatch, tmp_path):
     from api.labeling.store import SampleStore
     from api.training_jobs import routes
@@ -150,7 +229,7 @@ def test_train_job_evaluates_and_awaits_promote(monkeypatch, tmp_path):
     monkeypatch.setattr(
         routes,
         "train_from_rows",
-        lambda kind, rows, out, epochs: out.mkdir(parents=True, exist_ok=True)
+        lambda kind, rows, out, epochs, on_epoch=None: out.mkdir(parents=True, exist_ok=True)
         or (out / "w").write_text("x"),
     )
     monkeypatch.setattr(

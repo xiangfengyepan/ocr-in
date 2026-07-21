@@ -32,6 +32,18 @@ export class Models implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.reload();
+    this.rehydrateJobs();
+  }
+
+  private rehydrateJobs(): void {
+    this.svc.trainStatus().subscribe((all) => {
+      const next: Record<TrainKind, TrainJob | null> = { line: null, word: null };
+      for (const kind of KINDS) {
+        next[kind] = all.find((j) => j.kind === kind) ?? null;
+      }
+      this.jobs.set(next);
+      if (KINDS.some((k) => this.isActive(next[k]))) this.startPolling();
+    });
   }
 
   ngOnDestroy(): void {

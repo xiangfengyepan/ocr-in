@@ -4,6 +4,8 @@ import torch
 from PIL import Image
 
 from api.inference.crnn_recognizer import crop_to_ink
+from api.registry import ModelRegistry
+from api.util import settings
 from api.util.gpu_lock import GPU_LOCK
 
 STOCK_MODEL = "microsoft/trocr-base-handwritten"
@@ -51,9 +53,17 @@ _loaded = False
 def get_trocr_recognizer() -> TrocrRecognizer | None:
     global _recognizer, _loaded
     if not _loaded:
+        entry = ModelRegistry(settings.models_dir).resolve("trocr", "english")
+        source = str(entry.weights) if entry.weights is not None else STOCK_MODEL
         try:
-            _recognizer = TrocrRecognizer()
+            _recognizer = TrocrRecognizer(source)
         except Exception:
             _recognizer = None
         _loaded = True
     return _recognizer
+
+
+def reset_trocr_recognizer() -> None:
+    global _recognizer, _loaded
+    _recognizer = None
+    _loaded = False

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
 from training.eval.metrics import cer, wer
+
+OnEpoch = Callable[[int], None] | None
 
 STOCK_TROCR = "microsoft/trocr-base-handwritten"
 
@@ -25,12 +28,14 @@ def _rows_to_samples(rows: list[dict]) -> list[_Row]:
     return [_Row(str(r["image"]), r["text"]) for r in rows]
 
 
-def train_from_rows(kind: str, rows: list[dict], out_dir: Path, epochs: int = 8) -> None:
+def train_from_rows(
+    kind: str, rows: list[dict], out_dir: Path, epochs: int = 8, on_epoch: OnEpoch = None
+) -> None:
     out_dir = Path(out_dir)
     if kind == "line":
-        _train_trocr(rows, out_dir, epochs)
+        _train_trocr(rows, out_dir, epochs, on_epoch)
     elif kind == "word":
-        _train_crnn(rows, out_dir, epochs)
+        _train_crnn(rows, out_dir, epochs, on_epoch)
     else:
         raise ValueError(f"unknown kind: {kind!r}")
 
@@ -43,7 +48,7 @@ def eval_rows(kind: str, weights: Path | None, rows: list[dict]) -> dict:
     raise ValueError(f"unknown kind: {kind!r}")
 
 
-def _train_trocr(rows: list[dict], out_dir: Path, epochs: int) -> None:
+def _train_trocr(rows: list[dict], out_dir: Path, epochs: int, on_epoch: OnEpoch = None) -> None:
     os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     import torch
     from torch.utils.data import DataLoader
@@ -83,7 +88,7 @@ def _train_trocr(rows: list[dict], out_dir: Path, epochs: int) -> None:
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
     model.train()
-    for _epoch in range(epochs):
+    for epoch in range(epochs):
         optimizer.zero_grad()
         for step, (pixel_values, labels, _texts) in enumerate(loader, start=1):
             pixel_values = pixel_values.to(device)
@@ -97,6 +102,8 @@ def _train_trocr(rows: list[dict], out_dir: Path, epochs: int) -> None:
                 scaler.step(optimizer)
                 scaler.update()
                 optimizer.zero_grad()
+        if on_epoch is not None:
+            on_epoch(epoch + 1)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     model.save_pretrained(out_dir)
@@ -125,7 +132,7 @@ def _eval_trocr(weights: Path | None, rows: list[dict]) -> dict:
     return {"cer": cer(refs, hyps), "wer": wer(refs, hyps)}
 
 
-def _train_crnn(rows: list[dict], out_dir: Path, epochs: int) -> None:
+def _train_crnn(rows: list[dict], out_dir: Path, epochs: int, on_epoch: OnEpoch = None) -> None:
     import json
 
     import torch
@@ -159,7 +166,7 @@ def _train_crnn(rows: list[dict], out_dir: Path, epochs: int) -> None:
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
     model.train()
-    for _epoch in range(epochs):
+    for epoch in range(epochs):
         optimizer.zero_grad()
         for images, targets, target_lengths, _texts in loader:
             images = images.to(device)
@@ -175,6 +182,8 @@ def _train_crnn(rows: list[dict], out_dir: Path, epochs: int) -> None:
             scaler.step(optimizer)
             scaler.update()
             optimizer.zero_grad()
+        if on_epoch is not None:
+            on_epoch(epoch + 1)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     charset.save(out_dir / "charset.json")

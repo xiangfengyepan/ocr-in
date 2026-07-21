@@ -204,6 +204,8 @@ def export() -> StreamingResponse:
                         "language": s["language"],
                         "rating": s["rating"],
                         "engine_guess": s["engine_guess"],
+                        "kind": s["kind"],
+                        "confidence": s["confidence"],
                         "image": arc,
                     }
                 )
@@ -237,6 +239,14 @@ def import_labels(file: UploadFile = File(...)) -> dict:
         language = record.get("language", "english")
         if not language.isalpha():
             language = "english"
-        store.add_sample(png, record.get("text", ""), language, rating, record.get("engine_guess"))
+        store.add_sample(
+            png,
+            record.get("text", ""),
+            language,
+            rating,
+            record.get("engine_guess"),
+            confidence=record.get("confidence"),
+            kind=record.get("kind", "word"),
+        )
         imported += 1
     return {"imported": imported}

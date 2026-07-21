@@ -202,3 +202,40 @@ def test_export_import_roundtrip(tmp_path):
     rows = client.get("/label/samples").json()
     assert {r["text"] for r in rows} == {"one", "two"}
     assert (tmp_path / "imported" / "english" / "1.png").exists()
+
+
+def test_export_import_preserves_kind_and_confidence(tmp_path):
+    import json
+    import zipfile
+
+    from api.labeling import routes
+
+    png = base64.b64decode(_png_data_url().split(",", 1)[1])
+    routes.store = routes.SampleStore(tmp_path)
+    routes.store.add_sample(png, "line text", "english", "correct", "g", confidence=0.42, kind="line")
+    routes.store.add_sample(png, "word text", "english", "correct", None, confidence=None, kind="word")
+    client = TestClient(main.app)
+
+    exported = client.get("/label/export")
+    zf = zipfile.ZipFile(io.BytesIO(exported.content))
+    manifest = [
+        json.loads(line)
+        for line in zf.read("manifest.jsonl").decode("utf-8").splitlines()
+        if line.strip()
+    ]
+    by_text = {r["text"]: r for r in manifest}
+    assert by_text["line text"]["kind"] == "line"
+    assert by_text["line text"]["confidence"] == 0.42
+    assert by_text["word text"]["kind"] == "word"
+    assert by_text["word text"]["confidence"] is None
+
+    routes.store = routes.SampleStore(tmp_path / "imported")  # fresh, empty store
+    resp = client.post(
+        "/label/import", files={"file": ("labels.zip", exported.content, "application/zip")}
+    )
+    assert resp.status_code == 200
+    restored = {r["text"]: r for r in routes.store.list_samples()}
+    assert restored["line text"]["kind"] == "line"
+    assert restored["line text"]["confidence"] == 0.42
+    assert restored["word text"]["kind"] == "word"
+    assert restored["word text"]["confidence"] is None

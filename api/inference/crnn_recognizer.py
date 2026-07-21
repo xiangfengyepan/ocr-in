@@ -64,3 +64,9 @@ def get_recognizer() -> CrnnRecognizer | None:
         _recognizer = None if entry.weights is None else CrnnRecognizer(entry.weights)
         _loaded = True
     return _recognizer
+
+
+def reset_recognizer() -> None:
+    global _recognizer, _loaded
+    _recognizer = None
+    _loaded = False
