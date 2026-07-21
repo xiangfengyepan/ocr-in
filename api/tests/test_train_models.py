@@ -18,7 +18,7 @@ def _patch(monkeypatch, models_dir: Path) -> None:
 def test_train_models_only_counts_personalized_marker(monkeypatch, tmp_path):
     models_dir = tmp_path / "models"
     # line/trocr: a personalized checkpoint (stamped by our promote flow)
-    trocr_dir = models_dir / "trocr" / "english"
+    trocr_dir = models_dir / "trocr" / "english__personal"
     trocr_dir.mkdir(parents=True)
     (trocr_dir / "personalized.json").write_text(
         json.dumps({"epoch": 7, "cer": 0.05, "wer": 0.12, "base_cer": 0.3, "base_wer": 0.5})
@@ -26,7 +26,8 @@ def test_train_models_only_counts_personalized_marker(monkeypatch, tmp_path):
     (trocr_dir / "history.json").write_text(
         json.dumps([{"epoch": 0, "cer": 0.3, "wer": 0.5}, {"epoch": 7, "cer": 0.05, "wer": 0.12}])
     )
-    # word/crnn: a BASELINE checkpoint (dir + meta.json but NO personalized.json)
+    # word/crnn: a BASELINE-only checkpoint (baseline dir, NO personal dir) ->
+    # must NOT be reported as personalized.
     crnn_dir = models_dir / "crnn" / "english"
     crnn_dir.mkdir(parents=True)
     (crnn_dir / "w").write_text("x")

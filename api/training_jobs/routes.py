@@ -73,7 +73,7 @@ def run_training_job(job: dict) -> dict:
             job["error"] = "need >= 50 labeled samples"
             return job
         with GPU_LOCK:
-            base = eval_rows(kind, registry.resolve(engine, LANGUAGE).weights, val)
+            base = eval_rows(kind, registry.serving_weights(engine, LANGUAGE), val)
             job["state"] = "training"
             epochs = job["epochs_total"] or DEFAULT_EPOCHS
             job["epochs_total"] = epochs
@@ -168,7 +168,7 @@ def trainable_models() -> list[dict]:
     ]
     out: list[dict] = []
     for _kind, engine, model_id, name, best_for in kinds:
-        path = settings.models_dir / engine / LANGUAGE
+        path = registry._personal_dir(engine, LANGUAGE)
         # "Personalized" = trained on the user's labels via our promote flow,
         # marked by personalized.json. A bare baseline checkpoint does NOT count.
         available = (path / "personalized.json").is_file()

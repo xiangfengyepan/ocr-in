@@ -60,8 +60,8 @@ _loaded = False
 def get_recognizer() -> CrnnRecognizer | None:
     global _recognizer, _loaded
     if not _loaded:
-        entry = ModelRegistry(settings.models_dir).resolve("crnn", "english")
-        _recognizer = None if entry.weights is None else CrnnRecognizer(entry.weights)
+        weights = ModelRegistry(settings.models_dir).serving_weights("crnn", "english")
+        _recognizer = None if weights is None else CrnnRecognizer(weights)
         _loaded = True
     return _recognizer
 

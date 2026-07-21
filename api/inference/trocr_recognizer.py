@@ -53,8 +53,8 @@ _loaded = False
 def get_trocr_recognizer() -> TrocrRecognizer | None:
     global _recognizer, _loaded
     if not _loaded:
-        entry = ModelRegistry(settings.models_dir).resolve("trocr", "english")
-        source = str(entry.weights) if entry.weights is not None else STOCK_MODEL
+        weights = ModelRegistry(settings.models_dir).serving_weights("trocr", "english")
+        source = str(weights) if weights is not None else STOCK_MODEL
         try:
             _recognizer = TrocrRecognizer(source)
         except Exception:
