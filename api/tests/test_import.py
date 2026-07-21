@@ -56,6 +56,35 @@ def test_process_job_failure_sets_error(monkeypatch, tmp_path):
     assert result["error"]
 
 
+def test_import_persists_confidence_and_line_kind(monkeypatch, tmp_path):
+    from api.labeling.store import SampleStore
+
+    store = SampleStore(tmp_path)
+    monkeypatch.setattr(routes, "store", store)
+    monkeypatch.setattr(routes, "segment_lines", lambda img: [[0, 0, 10, 10]])
+
+    class R:
+        def recognize(self, c):
+            return {"text": "hi", "confidence": 0.7}
+
+    monkeypatch.setattr(routes, "get_trocr_recognizer", lambda: R())
+    monkeypatch.setattr(routes, "correct_text", lambda t, lang, k: (t, lang))
+    routes.process_job(
+        {
+            "id": 1,
+            "filename": "p.png",
+            "state": "queued",
+            "pages_total": 0,
+            "pages_done": 0,
+            "lines": 0,
+            "error": None,
+        },
+        _png_bytes(),
+    )
+    row = store.list_samples()[0]
+    assert row["kind"] == "line" and row["confidence"] == 0.7
+
+
 def test_import_endpoint_and_status(monkeypatch, tmp_path):
     _patch_models(monkeypatch, tmp_path)
     client = TestClient(main.app)

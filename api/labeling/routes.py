@@ -69,6 +69,7 @@ class SampleRequest(BaseModel):
     rating: Rating
     text: str
     engine_guess: str | None = None
+    confidence: float | None = None
 
 
 class SampleResponse(BaseModel):
@@ -117,7 +118,9 @@ def sample(req: SampleRequest) -> SampleResponse:
     cropped = crop_to_ink(image)
     buf = io.BytesIO()
     cropped.save(buf, format="PNG")
-    result = store.add_sample(buf.getvalue(), req.text, "english", req.rating, req.engine_guess)
+    result = store.add_sample(
+        buf.getvalue(), req.text, "english", req.rating, req.engine_guess, confidence=req.confidence
+    )
     return SampleResponse(**result)
 
 

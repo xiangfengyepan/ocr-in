@@ -52,11 +52,19 @@ def _process_page(img: Image.Image, recognizer, job: dict) -> None:
     for box in boxes:
         x0, y0, x1, y1 = (int(round(v)) for v in box)
         crop = img.crop((x0, y0, x1, y1))
-        text = recognizer.recognize(crop)["text"]
-        corrected, _ = correct_text(text, "auto", "line")
+        res = recognizer.recognize(crop)
+        corrected, _ = correct_text(res["text"], "auto", "line")
         buf = io.BytesIO()
         crop.save(buf, format="PNG")
-        store.add_sample(buf.getvalue(), corrected, "auto", "pending", text)
+        store.add_sample(
+            buf.getvalue(),
+            corrected,
+            "auto",
+            "pending",
+            res["text"],
+            confidence=res.get("confidence"),
+            kind="line",
+        )
         job["lines"] += 1
 
 

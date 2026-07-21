@@ -64,6 +64,7 @@ class SaveLine(BaseModel):
     box: list[float]
     text: str
     guess: str | None = None
+    confidence: float | None = None
 
 
 class SaveRequest(BaseModel):
@@ -123,7 +124,15 @@ def save(req: SaveRequest) -> SaveResponse:
             continue
         buf = io.BytesIO()
         image.crop((x0, y0, x1, y1)).save(buf, format="PNG")
-        store.add_sample(buf.getvalue(), text, req.language, "correct", ln.guess)
+        store.add_sample(
+            buf.getvalue(),
+            text,
+            req.language,
+            "correct",
+            ln.guess,
+            confidence=ln.confidence,
+            kind="line",
+        )
         saved += 1
     return SaveResponse(saved=saved)
 
