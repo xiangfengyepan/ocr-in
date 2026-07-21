@@ -45,3 +45,42 @@
     <p class="foot">CRNN word figures are test-set; TrOCR mixes test (lines) and val (words). Full details in docs/BENCHMARKS.md.</p>
   </mat-card-content>
 </mat-card>
+
+<mat-card appearance="outlined" class="models">
+  <mat-card-header>
+    <mat-card-title>Personalized models (trained on your labels)</mat-card-title>
+    <mat-card-subtitle>Fine-tuned on your labeled data. Click a fine-tuned model for its training curve.</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content>
+    <div class="scroll">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Status</th>
+            <th>CER</th>
+            <th>WER</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of personalized(); track m.id) {
+            <tr class="row" [class.has-history]="m.history?.length" (click)="open(m)"
+              [attr.title]="m.history?.length ? 'Click for training curve' : 'No training history yet'">
+              <td>
+                <div class="name">{{ m.name }}</div>
+                <div class="detail">{{ m.detail }}</div>
+              </td>
+              <td>
+                <span class="badge" [class.lines]="m.available" [class.stock]="!m.available">
+                  {{ m.available ? 'fine-tuned' : 'stock/default' }}
+                </span>
+              </td>
+              <td class="best">{{ pct((m.best_for === 'words' ? m.metrics.words : m.metrics.lines)?.cer) }}</td>
+              <td>{{ pct((m.best_for === 'words' ? m.metrics.words : m.metrics.lines)?.wer) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </mat-card-content>
+</mat-card>

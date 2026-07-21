@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import json
 import queue
 import shutil
 import threading
@@ -126,6 +127,51 @@ def start_train(body: TrainRequest) -> dict:
         _jobs.append(job)
     _job_queue.put(job)
     return {"job": dict(job)}
+
+
+def _read_json(path: Path) -> dict | list | None:
+    return json.loads(path.read_text()) if path.is_file() else None
+
+
+@router.get("/models")
+def trainable_models() -> list[dict]:
+    kinds = [
+        ("line", "trocr", "trocr-line-personal", "TrOCR (line) — personalized", "lines"),
+        ("word", "crnn", "crnn-word-personal", "CRNN (word) — personalized", "words"),
+    ]
+    out: list[dict] = []
+    for _kind, engine, model_id, name, best_for in kinds:
+        path = settings.models_dir / engine / LANGUAGE
+        available = registry.has_finetuned(engine, LANGUAGE)
+        meta = _read_json(path / "meta.json") if available else None
+        history = _read_json(path / "history.json") if available else None
+        metric = (
+            {"cer": meta.get("cer"), "wer": meta.get("wer")}
+            if isinstance(meta, dict)
+            else None
+        )
+        out.append(
+            {
+                "id": model_id,
+                "name": name,
+                "detail": (
+                    "Fine-tuned on your labeled data"
+                    if available
+                    else "Not yet trained — using stock/default"
+                ),
+                "engine": engine,
+                "available": available,
+                "source": f"models/{engine}/{LANGUAGE}",
+                "best_for": best_for,
+                "metrics": {
+                    "words": metric if best_for == "words" else None,
+                    "lines": metric if best_for == "lines" else None,
+                },
+                "meta": meta if isinstance(meta, dict) else None,
+                "history": history if isinstance(history, list) else None,
+            }
+        )
+    return out
 
 
 @router.get("/status")

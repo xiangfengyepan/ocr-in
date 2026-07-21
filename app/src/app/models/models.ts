@@ -15,6 +15,7 @@ export class Models implements OnInit {
   private dialog = inject(MatDialog);
 
   models = signal<ModelInfo[]>([]);
+  personalized = signal<ModelInfo[]>([]);
 
   ngOnInit(): void {
     this.reload();
@@ -22,6 +23,7 @@ export class Models implements OnInit {
 
   reload(): void {
     this.svc.models().subscribe((m) => this.models.set(m));
+    this.svc.trainableModels().subscribe((m) => this.personalized.set(m));
   }
 
   pct(v: number | null | undefined): string {

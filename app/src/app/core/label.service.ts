@@ -132,6 +132,9 @@ export class LabelService {
   models(): Observable<ModelInfo[]> {
     return this.http.get<ModelInfo[]>(`${API}/models`);
   }
+  trainableModels(): Observable<ModelInfo[]> {
+    return this.http.get<ModelInfo[]>(`${API}/train/models`);
+  }
   startTrain(kind: TrainKind): Observable<{ job: TrainJob }> {
     return this.http.post<{ job: TrainJob }>(`${API}/train`, { kind });
   }
