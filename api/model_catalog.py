@@ -28,16 +28,6 @@ _BASE: list[dict] = [
         "metrics": {"words": {"cer": 0.38, "wer": 0.74}, "lines": {"cer": 0.028, "wer": 0.071}},
     },
     {
-        "id": "trocr-ft-words",
-        "name": "TrOCR-base (fine-tuned on words)",
-        "detail": "trocr-base fine-tuned on IAM words (worse than CRNN on words)",
-        "engine": "trocr",
-        "dir_rel": "trocr/english",
-        "source": "models/trocr/english",
-        "best_for": None,
-        "metrics": {"words": {"cer": 0.21, "wer": 0.26}, "lines": None},
-    },
-    {
         "id": "tesseract",
         "name": "Tesseract 5.5",
         "detail": "classical OCR, printed-text model, CPU only",
