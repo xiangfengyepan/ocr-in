@@ -53,6 +53,15 @@ export interface ModelInfo {
   meta: { epoch?: number; cer?: number; wer?: number } | null;
   history: EpochStat[] | null;
 }
+export type TrainKind = 'line' | 'word';
+export type TrainState = 'queued' | 'training' | 'evaluating' | 'done' | 'failed';
+export interface TrainJob {
+  id: number; kind: TrainKind; state: TrainState;
+  epoch: number; epochs_total: number;
+  base_cer: number | null; base_wer: number | null;
+  new_cer: number | null; new_wer: number | null;
+  candidate_path: string | null; promoted: boolean; error: string | null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class LabelService {
@@ -121,6 +130,18 @@ export class LabelService {
   }
   models(): Observable<ModelInfo[]> {
     return this.http.get<ModelInfo[]>(`${API}/models`);
+  }
+  startTrain(kind: TrainKind): Observable<{ job: TrainJob }> {
+    return this.http.post<{ job: TrainJob }>(`${API}/train`, { kind });
+  }
+  trainStatus(): Observable<TrainJob[]> {
+    return this.http.get<TrainJob[]>(`${API}/train/status`);
+  }
+  promoteModel(jobId: number): Observable<{ promoted: boolean; engine: string; kind: string }> {
+    return this.http.post<{ promoted: boolean; engine: string; kind: string }>(
+      `${API}/train/promote`,
+      { job_id: jobId },
+    );
   }
   exportLabels(): Observable<Blob> {
     return this.http.get(`${API}/label/export`, { responseType: 'blob' });
