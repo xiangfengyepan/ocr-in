@@ -1,0 +1,61 @@
+<div class="retrain-row">
+  @for (kind of kinds; track kind) {
+    <mat-card appearance="outlined" class="retrain">
+      <mat-card-header>
+        <mat-card-title>Retrain — {{ kind }}</mat-card-title>
+        <span class="header-spacer"></span>
+        @if (jobs()[kind]) {
+          <span class="chip" [class]="'state-' + jobs()[kind]!.state">{{ jobs()[kind]!.state }}</span>
+        }
+      </mat-card-header>
+      <mat-card-content>
+        @if (isActive(jobs()[kind])) {
+          <p class="hint">
+            <mat-progress-spinner diameter="18" mode="indeterminate" />
+            Epoch {{ jobs()[kind]!.epoch }}/{{ jobs()[kind]!.epochs_total }}
+          </p>
+        } @else if (jobs()[kind]?.state === 'done') {
+          <table class="cmp">
+            <thead>
+              <tr><th></th><th>Base</th><th>New</th><th>Δ</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>CER</td>
+                <td>{{ pct(jobs()[kind]!.base_cer) }}</td>
+                <td>{{ pct(jobs()[kind]!.new_cer) }}</td>
+                <td>{{ delta(jobs()[kind]!.base_cer, jobs()[kind]!.new_cer) }}</td>
+              </tr>
+              <tr>
+                <td>WER</td>
+                <td>{{ pct(jobs()[kind]!.base_wer) }}</td>
+                <td>{{ pct(jobs()[kind]!.new_wer) }}</td>
+                <td>{{ delta(jobs()[kind]!.base_wer, jobs()[kind]!.new_wer) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          @if (jobs()[kind]!.promoted) {
+            <p class="done-msg">Promoted — now serving this model.</p>
+          } @else {
+            <button mat-flat-button color="primary" [disabled]="promoting()[kind]" (click)="promote(kind)">
+              @if (promoting()[kind]) {
+                <mat-progress-spinner diameter="18" mode="indeterminate" />
+              } @else {
+                Use this model
+              }
+            </button>
+          }
+        } @else if (jobs()[kind]?.state === 'failed') {
+          <p class="job-error">{{ jobs()[kind]!.error }}</p>
+        } @else {
+          <p class="hint">No training run yet.</p>
+        }
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-stroked-button [disabled]="isActive(jobs()[kind])" (click)="train(kind)">
+          {{ jobs()[kind] ? 'Retrain' : 'Train' }}
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  }
+</div>

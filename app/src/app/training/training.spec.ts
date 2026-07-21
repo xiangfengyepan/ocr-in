@@ -1,0 +1,148 @@
+import { vi } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Training } from './training';
+import { TrainJob } from '../core/label.service';
+
+function setup() {
+  TestBed.configureTestingModule({
+    imports: [Training],
+    providers: [provideHttpClient(), provideHttpClientTesting()],
+  });
+  const fixture = TestBed.createComponent(Training);
+  fixture.detectChanges();
+  const http = TestBed.inject(HttpTestingController);
+  http.expectOne((r) => r.url.includes('/train/status')).flush([]);
+  fixture.detectChanges();
+  return { fixture, http };
+}
+
+describe('Training', () => {
+  it('rehydrates in-progress jobs from status on init and resumes polling', () => {
+    TestBed.configureTestingModule({
+      imports: [Training],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    const fixture = TestBed.createComponent(Training);
+    const c = fixture.componentInstance;
+
+    vi.useFakeTimers();
+    try {
+      fixture.detectChanges();
+      const http = TestBed.inject(HttpTestingController);
+      const active: TrainJob = {
+        id: 42, kind: 'line', state: 'training', epoch: 2, epochs_total: 8,
+        base_cer: null, base_wer: null, new_cer: null, new_wer: null,
+        candidate_path: null, promoted: false, error: null,
+      };
+      http.expectOne((r) => r.url.includes('/train/status')).flush([active]);
+      fixture.detectChanges();
+
+      expect(c.jobs().line?.id).toBe(42);
+      expect(c.isActive(c.jobs().line)).toBe(true);
+
+      // polling resumed
+      vi.advanceTimersByTime(2000);
+      http.expectOne((r) => r.url.includes('/train/status'))
+        .flush([{ ...active, state: 'done', epoch: 8 }]);
+      fixture.detectChanges();
+      expect(c.jobs().line?.state).toBe('done');
+      http.verify();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('starts training and renders the polled job state', () => {
+    const { fixture, http } = setup();
+    const c = fixture.componentInstance;
+
+    vi.useFakeTimers();
+    try {
+      c.train('line');
+      const queued: TrainJob = {
+        id: 7, kind: 'line', state: 'queued', epoch: 0, epochs_total: 10,
+        base_cer: null, base_wer: null, new_cer: null, new_wer: null,
+        candidate_path: null, promoted: false, error: null,
+      };
+      http.expectOne((r) => r.url.endsWith('/train') && r.method === 'POST').flush({ job: queued });
+      expect(c.jobs().line?.id).toBe(7);
+
+      const training: TrainJob = { ...queued, state: 'training', epoch: 3 };
+      vi.advanceTimersByTime(2000);
+      http.expectOne((r) => r.url.includes('/train/status')).flush([training]);
+      fixture.detectChanges();
+
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.textContent).toContain('training');
+      expect(el.textContent).toContain('3/10');
+      expect(c.isActive(c.jobs().line)).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+    http.verify();
+  });
+
+  it('shows the before/after table on a done job', () => {
+    const { fixture, http } = setup();
+    const c = fixture.componentInstance;
+
+    vi.useFakeTimers();
+    try {
+      c.train('word');
+      const queued: TrainJob = {
+        id: 8, kind: 'word', state: 'queued', epoch: 0, epochs_total: 5,
+        base_cer: null, base_wer: null, new_cer: null, new_wer: null,
+        candidate_path: null, promoted: false, error: null,
+      };
+      http.expectOne((r) => r.url.endsWith('/train') && r.method === 'POST').flush({ job: queued });
+
+      const done: TrainJob = {
+        ...queued, state: 'done', epoch: 5,
+        base_cer: 0.2, base_wer: 0.4, new_cer: 0.1, new_wer: 0.3,
+        candidate_path: '/tmp/candidate',
+      };
+      vi.advanceTimersByTime(2000);
+      http.expectOne((r) => r.url.includes('/train/status')).flush([done]);
+      fixture.detectChanges();
+
+      expect(c.jobs().word?.state).toBe('done');
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.textContent).toContain('20.0%');
+      expect(el.textContent).toContain('10.0%');
+      expect(el.textContent).toContain('Use this model');
+
+      // polling stops once no job is active
+      vi.advanceTimersByTime(4000);
+      http.expectNone((r) => r.url.includes('/train/status'));
+    } finally {
+      vi.useRealTimers();
+    }
+    http.verify();
+  });
+
+  it('promotes a model and marks the job promoted', () => {
+    const { fixture, http } = setup();
+    const c = fixture.componentInstance;
+
+    c.jobs.set({
+      line: null,
+      word: {
+        id: 8, kind: 'word', state: 'done', epoch: 5, epochs_total: 5,
+        base_cer: 0.2, base_wer: 0.4, new_cer: 0.1, new_wer: 0.3,
+        candidate_path: '/tmp/candidate', promoted: false, error: null,
+      },
+    });
+    fixture.detectChanges();
+
+    c.promote('word');
+    http.expectOne((r) => r.url.endsWith('/train/promote') && r.method === 'POST')
+      .flush({ promoted: true, engine: 'crnn', kind: 'word' });
+
+    expect(c.jobs().word?.promoted).toBe(true);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Promoted');
+    http.verify();
+  });
+});
