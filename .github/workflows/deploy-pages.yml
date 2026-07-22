@@ -55,7 +55,8 @@ jobs:
 
       - name: Inject API base (if configured)
         if: ${{ vars.API_BASE != '' }}
-        run: printf '{ "apiBase": "%s" }\n' "${{ vars.API_BASE }}" > dist/app/browser/config.json
+        run: |
+          printf '{ "apiBase": "%s" }\n' "${{ vars.API_BASE }}" > dist/app/browser/config.json
 
       - name: Disable Jekyll processing
         run: touch dist/app/browser/.nojekyll
