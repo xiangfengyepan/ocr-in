@@ -1,0 +1,75 @@
+name: Deploy frontend to GitHub Pages
+
+# Builds the Angular SPA (app/) and publishes it to GitHub Pages.
+# The Python/GPU backend is NOT deployed here — set the public backend URL via
+# a repository variable named API_BASE (Settings → Secrets and variables →
+# Actions → Variables). Without it, the app uses the committed default in
+# app/public/config.json.
+
+on:
+  push:
+    branches: [release]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - run: npm ci
+
+      - name: Resolve base href
+        id: base
+        run: |
+          repo="${{ github.event.repository.name }}"
+          if [[ "$repo" == *.github.io ]]; then
+            echo "href=/" >> "$GITHUB_OUTPUT"
+          else
+            echo "href=/$repo/" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build
+        run: npx ng build --configuration=production --base-href "${{ steps.base.outputs.href }}"
+
+      - name: SPA fallback (404 → index) for client-side routing
+        run: cp dist/app/browser/index.html dist/app/browser/404.html
+
+      - name: Inject API base (if configured)
+        if: ${{ vars.API_BASE != '' }}
+        run: printf '{ "apiBase": "%s" }\n' "${{ vars.API_BASE }}" > dist/app/browser/config.json
+
+      - name: Disable Jekyll processing
+        run: touch dist/app/browser/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/dist/app/browser
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
