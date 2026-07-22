@@ -12,6 +12,12 @@
   margin-right: 1.5rem;
 }
 
+.topbar .spacer {
+  flex: 1;
+}
+.topbar .config-btn {
+  color: var(--mat-sys-on-primary);
+}
 .topbar .tabs {
   display: flex;
   gap: 0.25rem;

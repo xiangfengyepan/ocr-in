@@ -9,6 +9,10 @@
       <a mat-button routerLink="/ocr" routerLinkActive="active">OCR</a>
       <a mat-button routerLink="/review" routerLinkActive="active">Review</a>
     </nav>
+    <span class="spacer"></span>
+    <button mat-icon-button class="config-btn" aria-label="Configuration" (click)="openConfig()">
+      <mat-icon>settings</mat-icon>
+    </button>
   </mat-toolbar>
 }
 <main class="page">

@@ -132,6 +132,12 @@ export class LabelService {
   models(): Observable<ModelInfo[]> {
     return this.http.get<ModelInfo[]>(`${API}/models`);
   }
+  getConfig(): Observable<{ ollama_host: string }> {
+    return this.http.get<{ ollama_host: string }>(`${API}/config`);
+  }
+  setConfig(ollamaHost: string): Observable<{ ollama_host: string }> {
+    return this.http.post<{ ollama_host: string }>(`${API}/config`, { ollama_host: ollamaHost });
+  }
   trainableModels(): Observable<ModelInfo[]> {
     return this.http.get<ModelInfo[]>(`${API}/train/models`);
   }

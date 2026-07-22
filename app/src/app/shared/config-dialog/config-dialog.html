@@ -1,0 +1,31 @@
+<h2 mat-dialog-title>Configuration</h2>
+<mat-dialog-content class="config">
+  <mat-form-field appearance="outline" class="full" subscriptSizing="dynamic">
+    <mat-label>API base URL</mat-label>
+    <input
+      matInput
+      [value]="apiBase()"
+      (input)="apiBase.set($any($event.target).value)"
+      placeholder="http://localhost:8000"
+    />
+    <mat-hint>Which backend this app calls. Saved in your browser (overrides config.json).</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full" subscriptSizing="dynamic">
+    <mat-label>Ollama host (backend)</mat-label>
+    <input
+      matInput
+      [value]="ollamaHost()"
+      (input)="ollamaHost.set($any($event.target).value)"
+      [disabled]="loading()"
+      placeholder="http://localhost:11434"
+    />
+    <mat-hint>Where the backend reaches Ollama for text correction. Applies at runtime, until the backend restarts.</mat-hint>
+  </mat-form-field>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="resetApi()">Reset API to default</button>
+  <span class="spacer"></span>
+  <button mat-stroked-button (click)="close()">Cancel</button>
+  <button mat-flat-button color="primary" [disabled]="saving()" (click)="save()">Save</button>
+</mat-dialog-actions>
