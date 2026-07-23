@@ -24,9 +24,6 @@
           <mat-option value="tesseract">Tesseract</mat-option>
         </mat-select>
       </mat-form-field>
-      <mat-slide-toggle [checked]="autoCorrect()" (change)="autoCorrect.set($event.checked)">
-        Auto-correct
-      </mat-slide-toggle>
       <span class="count">Saved: {{ total() }}</span>
     </div>
     @if (gpuDisabled()) {
@@ -73,14 +70,27 @@
           OCR: <strong>{{ guess() }}</strong> <em>({{ confidence() | number: '1.2-2' }})</em>
           @if (guessEngine()) { <span class="hint">· read by {{ guessEngine() }}</span> }
         </p>
-        @if (correcting()) {
-          <p class="hint"><mat-progress-spinner diameter="16" mode="indeterminate" /> correcting…</p>
-        } @else if (corrected() !== null) {
-          <p class="corrected">
-            Corrected@if (detectedLang()) { <span class="hint">({{ detectedLang() }})</span> }:
-            <strong>{{ corrected() }}</strong>
-          </p>
-        }
+
+        <div class="correct-row">
+          <button mat-stroked-button color="primary" (click)="correctClick()" [disabled]="correcting()">
+            @if (correcting()) {
+              <mat-progress-spinner diameter="18" mode="indeterminate" />
+            } @else if (corrected() === null) {
+              Auto-correct (AI)
+            } @else if (showCorrected()) {
+              Show original
+            } @else {
+              Show corrected
+            }
+          </button>
+          @if (showCorrected() && corrected() !== null) {
+            <span class="corrected">
+              Corrected@if (detectedLang()) { <span class="hint">({{ detectedLang() }})</span> }:
+              <strong>{{ corrected() }}</strong>
+            </span>
+          }
+        </div>
+
         <mat-button-toggle-group class="rating-toggle" [value]="rating()" (change)="rate($event.value)" hideSingleSelectionIndicator>
           <mat-button-toggle class="toggle-correct" value="correct">Correct</mat-button-toggle>
           <mat-button-toggle class="toggle-incorrect" value="incorrect">Incorrect</mat-button-toggle>

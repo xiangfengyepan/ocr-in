@@ -11,6 +11,12 @@
 .controls .count { color: var(--mat-sys-on-surface-variant); }
 
 .result .ocr { margin: 0; color: var(--mat-sys-on-surface-variant); }
+.result .correct-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
 .result .corrected { margin: 0; }
 .result .hint mat-progress-spinner { display: inline-block; vertical-align: middle; margin-right: 0.4rem; }
 

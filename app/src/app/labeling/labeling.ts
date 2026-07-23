@@ -17,7 +17,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { EnginesAvailability, Kind, Language, LabelService } from '../core/label.service';
 import { ToastService } from '../shared/toast.service';
 
@@ -38,7 +37,6 @@ const AVAILABILITY_POLL_MS = 2000;
     MatInputModule,
     MatProgressSpinnerModule,
     MatSelectModule,
-    MatSlideToggleModule,
   ],
   templateUrl: './labeling.html',
   styleUrl: './labeling.scss',
@@ -64,8 +62,8 @@ export class Labeling implements AfterViewInit, OnDestroy {
   guessEngine = signal<string | null>(null);
   readonly languages: Language[] = ['auto', 'english', 'spanish', 'catalan', 'chinese', 'japanese'];
   language = signal<Language>('auto');
-  autoCorrect = signal(true);
   corrected = signal<string | null>(null);
+  showCorrected = signal(false);
   correcting = signal(false);
   detectedLang = signal<string | null>(null);
 
@@ -151,6 +149,7 @@ export class Labeling implements AfterViewInit, OnDestroy {
     this.text.set('');
     this.guessEngine.set(null);
     this.corrected.set(null);
+    this.showCorrected.set(false);
     this.detectedLang.set(null);
   }
 
@@ -217,6 +216,7 @@ export class Labeling implements AfterViewInit, OnDestroy {
     this.rating.set(null);
     this.text.set('');
     this.corrected.set(null);
+    this.showCorrected.set(false);
     this.detectedLang.set(null);
     this.guessEngine.set(null);
     this.scheduleDetect();
@@ -251,7 +251,9 @@ export class Labeling implements AfterViewInit, OnDestroy {
           this.text.set(r.guess);
           this.guessEngine.set(r.engine);
           this.rating.set(null);
-          if (this.autoCorrect()) this.correctStep(r.guess);
+          this.corrected.set(null);
+          this.showCorrected.set(false);
+          this.detectedLang.set(null);
           this.refreshAvailability();
         },
         error: () =>
@@ -259,9 +261,19 @@ export class Labeling implements AfterViewInit, OnDestroy {
       });
   }
 
+  correctClick(): void {
+    // First click fetches + shows the AI-corrected version; later clicks flip
+    // between the original OCR guess and the corrected text.
+    if (this.corrected() === null) {
+      this.correctStep(this.guess() ?? '');
+    } else {
+      this.showCorrected.update((v) => !v);
+      this.syncText();
+    }
+  }
+
   private correctStep(raw: string): void {
     this.correcting.set(true);
-    this.corrected.set(null);
     this.svc
       .correct(raw, this.language(), this.mode())
       .pipe(finalize(() => this.correcting.set(false)))
@@ -269,15 +281,22 @@ export class Labeling implements AfterViewInit, OnDestroy {
         next: (c) => {
           this.corrected.set(c.corrected);
           this.detectedLang.set(c.language);
-          this.text.set(c.corrected);
+          this.showCorrected.set(true);
+          this.syncText();
         },
         error: () => this.toast.error('Correction failed — keeping the raw OCR text.'),
       });
   }
 
+  // Keep the text that will be saved in sync with whichever version is shown.
+  private syncText(): void {
+    const useCorrected = this.showCorrected() && this.corrected() !== null;
+    this.text.set(useCorrected ? this.corrected()! : this.guess() ?? '');
+  }
+
   rate(r: Rating): void {
     this.rating.set(r);
-    if (r === 'correct') this.text.set(this.corrected() ?? this.guess() ?? '');
+    if (r === 'correct') this.syncText();
   }
 
   save(): void {

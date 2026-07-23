@@ -28,7 +28,6 @@ describe('Labeling', () => {
     const c = fixture.componentInstance;
     expect(c.gpuDisabled()).toBe(false);
 
-    c.autoCorrect.set(false);
     c.doGuess();
     const req = http.expectOne((r) => r.url.includes('/label/guess'));
     expect(req.request.body.engine).toBeUndefined();
@@ -49,7 +48,6 @@ describe('Labeling', () => {
     c.availability.set({ trocr: false, crnn: false, tesseract: true, training: true });
     expect(c.gpuDisabled()).toBe(true);
 
-    c.autoCorrect.set(false);
     c.engine.set('crnn');
     c.doGuess();
     const req = http.expectOne((r) => r.url.includes('/label/guess'));
