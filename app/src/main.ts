@@ -13,9 +13,13 @@ async function loadConfig(): Promise<void> {
   }
   try {
     const res = await fetch(new URL('config.json', document.baseURI), { cache: 'no-cache' });
-    if (res.ok) setApiBase((await res.json())?.apiBase);
+    if (res.ok) {
+      const apiBase = (await res.json())?.apiBase;
+      // "auto" (or empty) → keep the host-derived default (same host, :8000).
+      if (apiBase && apiBase !== 'auto') setApiBase(apiBase);
+    }
   } catch {
-    // no config.json → keep the built-in default API base
+    // no config.json → keep the host-derived default API base
   }
 }
 

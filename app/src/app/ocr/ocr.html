@@ -57,14 +57,17 @@
       <div class="result-bar">
         <span class="count">{{ r.lines.length }} line{{ r.lines.length === 1 ? '' : 's' }} — select text on the image, or click a line to edit.</span>
         <span class="spacer"></span>
-        <div class="corrected-toggle">
-          @if (correcting()) { <mat-progress-spinner diameter="18" mode="indeterminate" /> }
-          <mat-slide-toggle
-            [checked]="showCorrected()"
-            [disabled]="correcting()"
-            (change)="toggleCorrected($event.checked)"
-          >{{ showCorrected() ? 'Corrected' : 'Original' }}</mat-slide-toggle>
-        </div>
+        <button mat-stroked-button [disabled]="correcting()" (click)="correctClick()">
+          @if (correcting()) {
+            <mat-progress-spinner diameter="18" mode="indeterminate" />
+          } @else if (corrected() === null) {
+            Auto-correct (AI)
+          } @else if (showCorrected()) {
+            Show original
+          } @else {
+            Show corrected
+          }
+        </button>
         <button mat-stroked-button (click)="copyAll()">Copy all</button>
         <button mat-stroked-button [disabled]="saving()" (click)="saveToData()">
           @if (saving()) { <mat-progress-spinner diameter="18" mode="indeterminate" /> } @else { Save to Data }

@@ -2,7 +2,18 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 
-export let API = 'http://localhost:8000';
+// Default API base = same host the frontend is served from, on port 8000.
+// So it works whether you open the app at localhost, the Tailscale IP, or any
+// other host — no hardcoded address. Overridable via config.json / the Config
+// dialog (localStorage).
+export function defaultApiBase(): string {
+  if (typeof location !== 'undefined' && location.hostname) {
+    return `${location.protocol}//${location.hostname}:8000`;
+  }
+  return 'http://localhost:8000';
+}
+
+export let API = defaultApiBase();
 
 export function setApiBase(url: string | undefined | null): void {
   if (url) API = url.replace(/\/+$/, '');

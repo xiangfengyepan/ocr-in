@@ -1,0 +1,16 @@
+[Unit]
+Description=ocr-in frontend (static SPA, 0.0.0.0:4400)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=server
+WorkingDirectory=/home/server/ocr-in/app
+Environment=PORT=4400
+ExecStart=/home/server/.local/bin/node serve-dist.mjs
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -3,7 +3,6 @@ import { finalize } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { Language, LabelService, OcrLine } from '../core/label.service';
@@ -16,7 +15,6 @@ import { OcrStateService } from './ocr-state.service';
     MatCardModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    MatSlideToggleModule,
     MatFormFieldModule,
     MatSelectModule,
   ],
@@ -128,6 +126,16 @@ export class Ocr {
         const lines = r.lines.map((ln, i) => (i === index ? { ...ln, text } : ln));
         return { ...r, lines, text: lines.map((l) => l.text).join('\n') };
       });
+    }
+  }
+
+  correctClick(): void {
+    // First click fetches + shows the AI-corrected version; later clicks flip
+    // between the original OCR and the corrected text.
+    if (this.corrected() === null) {
+      this.toggleCorrected(true);
+    } else {
+      this.showCorrected.update((v) => !v);
     }
   }
 
