@@ -45,7 +45,13 @@ createServer(async (req, res) => {
       return res.end('forbidden');
     }
     const body = await readFile(file);
-    res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream' });
+    // index.html + config.json must always revalidate (they point at the current
+    // hashed bundles / API base); content-hashed assets can cache forever.
+    const revalidate = extname(file) === '.html' || file.endsWith('config.json');
+    res.writeHead(200, {
+      'content-type': TYPES[extname(file)] || 'application/octet-stream',
+      'cache-control': revalidate ? 'no-cache' : 'public, max-age=31536000, immutable',
+    });
     res.end(body);
   } catch {
     res.writeHead(500);
